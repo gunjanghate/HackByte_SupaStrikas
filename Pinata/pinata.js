@@ -2,11 +2,18 @@ const express = require("express");
 const multer = require("multer");
 const axios = require("axios");
 const FormData = require("form-data");
+const cors = require("cors");
+
 const fs = require("fs");
 require("dotenv").config();
 
+
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+app.use(cors(
+   { origin: "*" } 
+));
 
 // Pinata API Keys
 const PINATA_API_KEY = process.env.PINATA_API_KEY;
