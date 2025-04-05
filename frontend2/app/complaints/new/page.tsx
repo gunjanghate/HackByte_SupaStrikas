@@ -37,11 +37,11 @@ export default function NewComplaintPage() {
   const [locationAddress, setLocationAddress] = useState("")
   const [contactEmail, setContactEmail] = useState("")
   const [contactName, setContactName] = useState("")
-  const [contactMethod, setContactMethod] = useState("phone")
+
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { complaints } = useComplaintStore()
-  const { addComplaint } = useComplaintStore()
+
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
   const [evidenceDescription, setEvidenceDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -95,20 +95,7 @@ export default function NewComplaintPage() {
     window.scrollTo(0, 0)
   }
 
-  // const uploadFileToIPFS = async (file: File): Promise<string> => {
-  //   const formData = new FormData();
-  //   formData.append('file', file);
-    
-  //   const response = await fetch('/api/uploadany', {
-  //     method: 'POST',
-  //     body: formData,
-  //   });
 
-  //   if (!response.ok) throw new Error('File upload failed');
-    
-  //   const data = await response.json();
-  //   return data.ipfsHash;
-  // };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);

@@ -9,11 +9,17 @@ import { Shield, Search, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { useComplaintStore } from "../../../lib/stores/complaintStore";
 
 export default function TrackComplaintPage() {
   const router = useRouter()
   const [trackingId, setTrackingId] = useState("")
   const [error, setError] = useState("")
+
+  
+
+  useComplaintStore((state: { getComplaintByTrackingId: (id: string) => void }) => state.getComplaintByTrackingId(trackingId));
+
 
   const handleTrack = (e: React.FormEvent) => {
     e.preventDefault()

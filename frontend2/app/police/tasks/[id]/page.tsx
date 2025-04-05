@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import axios from "axios";
 import { useParams, useRouter } from "next/navigation"
+import axios from "axios";
 import {
   Shield,
   ArrowLeft,
@@ -18,7 +18,6 @@ import {
   Send,
   Ambulance,
   ChevronDown,
-  ExternalLink,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -53,25 +52,104 @@ const TIMELINE_STEPS = [
 export default function TaskDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { complaints, evidenceCache } = useComplaintStore()
+  const { complaints } = useComplaintStore()
   const [task, setTask] = useState<Complaint | null>(null)
   const [loading, setLoading] = useState(true)
   const [activityNote, setActivityNote] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [txReceipt, setTxReceipt] = useState<any>(null)
-  const [firData, setFirData] = useState<any>(null)
+  const [firData, setFirData] = useState<any[]>([])
+  const [evidenceUrls, setEvidenceUrls] = useState<Record<string, string>>({})
+
+  // Fixed function to fetch evidence URLs
+  const getEvidenceImageByTrackingId = async (trackingId: string): Promise<string | null> => {
+    try {
+      // Step 1: Get array of CIDs from your backend
+      const cidRes = await axios.get("http://localhost:5000/getComplaints");
+      const { cids } = cidRes.data;
+  
+      for (const cid of cids) {
+        // Fixed template string syntax
+        const metadataRes = await axios.get(`https://${cid}.ipfs.dweb.link`);
+        const data = metadataRes.data;
+  
+        if (data.trackingId === trackingId) {
+          const evidenceCID = data.evidenceFiles?.[0];
+          if (!evidenceCID) return null;
+  
+          // Return full image URL with fixed template string
+          return `https://${evidenceCID}.ipfs.dweb.link`;
+        }
+      }
+  
+      return null;
+    } catch (err) {
+      console.error("Error fetching evidence image:", err);
+      return null;
+    }
+  };
+
+  // Function to fetch FIR data
+  const fetchFIRData = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/getComplaints")
+      const cids = response.data.cids
+
+      const firDetails = await Promise.all(
+        cids.map(async (cid: string) => {
+          // Fixed template string syntax
+          const ipfsResponse = await axios.get(`https://ipfs.io/ipfs/${cid}`)
+          const fir = ipfsResponse.data
+
+          // Convert evidence CIDs to full IPFS URLs
+          const evidenceLinks = Array.isArray(fir.evidenceFiles)
+            ? fir.evidenceFiles.map((evidenceCid: string) => `https://ipfs.io/ipfs/${evidenceCid}`)
+            : []
+
+          return {
+            ...fir,
+            evidenceLinks, // Add this to use in rendering
+          }
+        })
+      )
+
+      setFirData(firDetails)
+    } catch (error) {
+      console.error("Error fetching FIR data:", error)
+    }
+  }
+
+  // Load evidence URLs for the current complaint
+  const loadEvidenceUrls = async (complaint: Complaint) => {
+    if (!complaint || !complaint.evidenceFiles || complaint.evidenceFiles.length === 0) {
+      return;
+    }
+    
+    const urls: Record<string, string> = {};
+    
+    for (const cid of complaint.evidenceFiles) {
+      // Fixed template string syntax
+      urls[cid] = `https://ipfs.io/ipfs/${cid}`;
+    }
+    
+    setEvidenceUrls(urls);
+  };
 
   useEffect(() => {
     const foundComplaint = complaints.find(c => c.trackingId === params.id)
     if (foundComplaint) {
       setTask(foundComplaint)
+      // Load evidence URLs when complaint is found
+      loadEvidenceUrls(foundComplaint);
       setLoading(false)
     } else {
       setLoading(false)
     }
+    
+    // Fetch FIR data
+    fetchFIRData();
   }, [params.id, complaints])
   
-  const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS2;
+  const CONTRACT_ADDRESS = "0x61604bBC1D27D8C2a3646A6B11bd7E82a78dA5f0";
   
   const getTaskStatus = (complaint: Complaint) => {
     if (complaint.Resolved) return 'resolved'
@@ -91,7 +169,7 @@ export default function TaskDetailPage() {
       switch (step.status) {
         case 'received':
           completed = true
-            timestamp = typeof complaint.createdAt === 'object' 
+          timestamp = typeof complaint.createdAt === 'object' 
             ? complaint.createdAt.toISOString()
             : new Date(complaint.createdAt).toISOString()
           description = "Complaint was received and logged in the system"
@@ -122,19 +200,6 @@ export default function TaskDetailPage() {
     })
   }
 
-  const getEvidenceDetails = (cid: string) => {
-    const file = evidenceCache[cid]
-    if (!file) return null
-    
-    // Make sure file is a valid Blob or File object before creating URL
-    if (typeof file === 'object' && file !== null && (file instanceof Blob)) {
-      const url = URL.createObjectURL(file)
-      const type = file.type.split('/')[0]
-      return { url, type, name: file.name }
-    }
-    return null
-  }
-
   const handleStatusUpdate = (newStatus: string) => {
     if (!task) return
 
@@ -160,7 +225,6 @@ export default function TaskDetailPage() {
     }
 
     setTask({ ...task, ...updates })
-    console.log(`Status Taskkk to ${task}`)
   }
 
   const handleReportArrival = () => {
@@ -168,60 +232,38 @@ export default function TaskDetailPage() {
     setTask({ ...task, PoliceArrived: true })
   }
 
+  const handleSubmitActivityNote = () => {
+    if (!activityNote.trim() || !task) return;
+    
+    // In a real app, you would save this note to your backend
+    console.log(`Activity note submitted for ${task.trackingId}: ${activityNote}`);
+    
+    // Clear the input after submission
+    setActivityNote("");
+  }
+
   const getSeverity = (complaint: Complaint) => {
     return complaint.voicemailReceived ? 'high' : 'medium'
   }
-
-  // Function to get FIR data from blockchain
-
-
-  const getFIRData = async (firId: number) => {
-    try {
-      // Fetch evidence CIDs from your backend using Axios
-      const cidResponse = await axios.get("http://localhost:5000/getComplaints", {
-        params: { firId },
-      });
-  
-      const cidData = cidResponse.data;
-      console.log("CID Data:", cidData);
-  
-      // Fetch the complaint JSON from IPFS using the first CID
-      const complaintCid = cidData.cids[0]; // Assuming the first CID contains the complaint JSON
-      const ipfsResponse = await axios.get(`https://ipfs.io/ipfs/${complaintCid}`);
-      const firDetails = ipfsResponse.data;
-  
-      return {
-        id: firDetails.id.toString(),
-        title: firDetails.title,
-        description: firDetails.description,
-        complainantName: firDetails.complainantName,
-        complainantContact: firDetails.complainantContact,
-        incidentDate: new Date(firDetails.incidentDate * 1000).toLocaleString(),
-        incidentLocation: firDetails.incidentLocation,
-        category: firDetails.category,
-        status: firDetails.status,
-        evidenceCids: cidData.cids, // From backend
-        timestamp: new Date(firDetails.timestamp * 1000).toLocaleString(),
-        officerAddress: firDetails.officerAddress,
-      };
-    } catch (error) {
-      console.error("Error fetching FIR data:", error);
-      return null;
-    }
-  };
-  
 
   async function fileFIR(trackingId: string, complaint: Complaint): Promise<void> {
     try {
       // Connect to the blockchain
       const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
+  
+      // Get the list of accounts directly from the provider
+      const accounts = await provider.send("eth_requestAccounts", []);
+      const signer = await provider.getSigner(accounts[0]);
+      
+      // Create contract instance with explicit address handling
+      // Avoid any automatic ENS resolution
+      const contractAddress = CONTRACT_ADDRESS;
       const contract = new ethers.Contract(
-        CONTRACT_ADDRESS!,
+        contractAddress,
         SecureFIRSystem.abi,
         signer
       );
-  
+      
       // Prepare FIR data (use dummy data where necessary)
       const firData = {
         title: complaint.description.substring(0, 50) || "Untitled FIR",
@@ -235,6 +277,11 @@ export default function TaskDetailPage() {
         evidenceCids: complaint.evidenceFiles
       };
   
+      // Disable ENS name resolution by using options parameter
+      const options = {
+        // Add any transaction options if needed
+      };
+  
       // Execute the contract call
       const tx = await contract.createFIR(
         firData.title,
@@ -245,46 +292,15 @@ export default function TaskDetailPage() {
         firData.incidentLocation,
         firData.category,
         firData.includeComplainantAccess,
-        firData.evidenceCids
+        firData.evidenceCids,
+        options
       );
   
-      // Wait for transaction confirmation and get receipt
-      const receipt = await tx.wait();
-      
-      // Parse receipt to find FIR ID
-      // Look for FIRCreated event in the logs
-      const firCreatedEvent = receipt.logs.find((log: any) => {
-        try {
-          const parsedLog = contract.interface.parseLog(log);
-          return parsedLog?.name === "FIRCreated";
-        } catch (e) {
-          return false;
-        }
-      });
-      
-      let firId = null;
-      if (firCreatedEvent) {
-        const parsedLog = contract.interface.parseLog(firCreatedEvent);
-        firId = parsedLog?.args?.firId?.toString();
-      }
-      
-      // Save receipt data
-      setTxReceipt({
-        hash: receipt.hash,
-        blockNumber: receipt.blockNumber,
-        gasUsed: receipt.gasUsed?.toString(),
-        effectiveGasPrice: receipt.effectiveGasPrice?.toString(),
-        status: receipt.status,
-        firId: firId
-      });
-      
-      // If we found a FIR ID, fetch the FIR data
-      if (firId) {
-        const fetchedFirData = await getFIRData(parseInt(firId));
-        setFirData(fetchedFirData);
-      }
+      // Wait for transaction confirmation
+      await tx.wait();
       
       console.log(`FIR created successfully for tracking ID: ${trackingId}`);
+      alert("FIR successfully filed on blockchain");
   
     } catch (error) {
       console.error("Error filing FIR:", error);
@@ -293,26 +309,20 @@ export default function TaskDetailPage() {
     }
   }
   
-  // Updated component usage
   const handleFileFIR = async () => {
     if (!task) return;
   
     try {
       setIsSubmitting(true);
       await fileFIR(task.trackingId, task);
-      // Update local state if needed
       setTask(prev => prev ? { ...prev, Resolved: true } : null);
     } catch (error) {
-      // Error handling already done in fileFIR
+      console.error("Error filing FIR:", error);
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  const getExplorerUrl = (hash: string) => {
-    // Adjust the network based on your deployment (mainnet, goerli, sepolia, etc.)
-    return `https://sepolia.etherscan.io/tx/${hash}`;
-  };
+  
 
   if (loading) {
     return <LoadingState />
@@ -322,9 +332,9 @@ export default function TaskDetailPage() {
     return <ErrorState taskId={params.id as string} />
   }
 
-  const currentStatus = getTaskStatus(task)
   const timeline = getTimeline(task)
   const severity = getSeverity(task)
+  const currentStatus = getTaskStatus(task)
 
   return (
     <div className="min-h-screen bg-background">
@@ -344,7 +354,7 @@ export default function TaskDetailPage() {
       </header>
 
       <main className="container px-4 md:px-6 py-8">
-        <div className="grid gap-6">
+        <div className="grid gap-6 md:grid-cols-3">
           <div className="md:col-span-2 space-y-6">
             <Card>
               <CardHeader className="pb-3">
@@ -357,8 +367,7 @@ export default function TaskDetailPage() {
                     <CardDescription>Tracking ID: {task.trackingId}</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    <StatusBadge status={currentStatus} />
-                    <StatusSelect currentStatus={currentStatus} onUpdate={handleStatusUpdate} />
+                    <StatusBadge status={currentStatus as keyof typeof STATUS_MAP} />
                   </div>
                 </div>
               </CardHeader>
@@ -382,151 +391,95 @@ export default function TaskDetailPage() {
 
                   <DetailSection title="Evidence">
                     <div className="grid grid-cols-2 gap-4">
-                      {task.evidenceFiles.map((cid: string) => {
-                        const evidence = getEvidenceDetails(cid)
-                        if (!evidence) return null
-                        
-                        return (
-                          <div key={cid} className="relative group">
-                            {evidence.type === 'image' && (
-                              <img
-                                src={evidence.url}
-                                alt={evidence.name}
-                                className="rounded-md object-cover h-40 w-full"
-                              />
-                            )}
-                            {evidence.type === 'video' && (
-                              <video
-                                controls
-                                className="rounded-md object-cover h-40 w-full"
-                              >
-                                <source src={evidence.url} type="video/mp4" />
-                              </video>
-                            )}
-                            <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-white text-sm">
-                              {evidence.name}
+                      {task.evidenceFiles && task.evidenceFiles.length > 0 ? (
+                        task.evidenceFiles.map((cid: string) => {
+                          // Use the precalculated evidence URL from state
+                          const evidenceUrl = evidenceUrls[cid];
+                          const isVideo = cid.toLowerCase().endsWith(".mp4");
+                          
+                          return (
+                            <div key={cid} className="relative group">
+                              {!isVideo && (
+                                <img
+                                  src={evidenceUrl}
+                                  alt={`Evidence ${cid.substring(0, 6)}`}
+                                  className="rounded-md object-cover h-40 w-full"
+                                />
+                              )}
+                              {isVideo && (
+                                <video
+                                  controls
+                                  className="rounded-md object-cover h-40 w-full"
+                                >
+                                  <source src={evidenceUrl} type="video/mp4" />
+                                </video>
+                              )}
+                              <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-white text-sm">
+                                {`Evidence File ${cid.substring(0, 6)}`}
+                              </div>
                             </div>
-                          </div>
-                        )
-                      })}
+                          )
+                        })
+                      ) : (
+                        <p className="text-sm text-muted-foreground col-span-2">No evidence files submitted</p>
+                      )}
                     </div>
                   </DetailSection>
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col items-start gap-4 pt-0">
-                <Separator className="my-4" />
-                <div className="grid grid-cols-3 gap-2 w-full">
-                  <Button
-                    className="gap-2"
-                    onClick={handleReportArrival}
-                    disabled={task.PoliceArrived}
-                  >
-                    <MapPin className="h-4 w-4" />
-                    {task.PoliceArrived ? "Arrival Confirmed" : "Report Arrival"}
-                  </Button>
-                  <Button
-                    className="gap-2"
-                    onClick={() => handleStatusUpdate('resolved')}
-                    disabled={task.Resolved}
-                  >
-                    <FileText className="h-4 w-4" />
-                    {task.Resolved ? "Resolved" : "Mark Resolved"}
-                  </Button>
-                  <Button
-                    className="gap-2"
-                    onClick={handleFileFIR}
-                    disabled={isSubmitting}
-                   >
-                    <FileText className="h-4 w-4" />
-                    {isSubmitting ? "Filing..." : "File FIR"}
-                  </Button>
+                <Separator className="w-full my-4" />
+                <div className="flex flex-col w-full gap-4">
+                  <h3 className="text-sm font-medium">Officer Actions</h3>
+                  <div className="flex flex-wrap gap-2">
+                    <StatusSelect 
+                      currentStatus={currentStatus} 
+                      onUpdate={handleStatusUpdate} 
+                    />
+                    
+                    {!task.PoliceArrived && (
+                      <Button 
+                        variant="outline" 
+                        onClick={handleReportArrival}
+                        className="flex items-center gap-2"
+                      >
+                        <MapPin className="h-4 w-4" />
+                        Report Arrival
+                      </Button>
+                    )}
+                    
+                    <Button 
+                      variant="default" 
+                      onClick={handleFileFIR}
+                      disabled={isSubmitting}
+                      className="flex items-center gap-2 ml-auto"
+                    >
+                      <FileText className="h-4 w-4" />
+                      {isSubmitting ? "Filing FIR..." : "File FIR"}
+                    </Button>
+                 
+
+                  </div>
+                  
+                  <div className="flex flex-col w-full mt-4">
+                    <Textarea
+                      placeholder="Add activity notes..."
+                      className="min-h-24 mb-2"
+                      value={activityNote}
+                      onChange={(e) => setActivityNote(e.target.value)}
+                    />
+                    <Button 
+                      className="self-end flex items-center gap-2"
+                      onClick={handleSubmitActivityNote}
+                      disabled={!activityNote.trim()}
+                    >
+                      <Send className="h-4 w-4" />
+                      Submit Note
+                    </Button>
+                  </div>
                 </div>
               </CardFooter>
             </Card>
-
-            {txReceipt && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Blockchain Transaction Details</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <DetailSection title="Transaction Hash">
-                      <div className="flex items-center gap-2">
-                        <code className="bg-gray-100 dark:bg-gray-800 p-1 rounded text-sm font-mono truncate max-w-full">
-                          {txReceipt.hash}
-                        </code>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => window.open(getExplorerUrl(txReceipt.hash), '_blank')}
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </DetailSection>
-                    
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <DetailSection title="Block Number" content={txReceipt.blockNumber.toString()} />
-                      <DetailSection title="Gas Used" content={ethers.formatUnits(txReceipt.gasUsed, 'gwei') + " gwei"} />
-                    </div>
-                    
-                    <DetailSection title="Status">
-                      <Badge className={txReceipt.status === 1 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
-                        {txReceipt.status === 1 ? "Success" : "Failed"}
-                      </Badge>
-                    </DetailSection>
-                    
-                    {txReceipt.firId && (
-                      <DetailSection title="FIR ID" content={`#${txReceipt.firId}`} />
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {firData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Filed FIR Details</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <DetailSection title="FIR ID" content={`#${firData.id}`} />
-                      <DetailSection title="Filed On" content={firData.timestamp} />
-                    </div>
-                    
-                    <DetailSection title="FIR Title" content={firData.title} />
-                    <DetailSection title="Description" content={firData.description} />
-                    
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <DetailSection title="Complainant" content={firData.complainantName} />
-                      <DetailSection title="Category" content={firData.category} />
-                    </div>
-                    
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <DetailSection title="Incident Date" content={firData.incidentDate} />
-                      <DetailSection title="Location" content={firData.incidentLocation} />
-                    </div>
-                    
-                    <DetailSection title="FIR Status">
-                      <Badge className="bg-blue-100 text-blue-800">
-                        {firData.status === "0" ? "Pending" : 
-                         firData.status === "1" ? "Under Investigation" : 
-                         firData.status === "2" ? "Closed" : "Unknown"}
-                      </Badge>
-                    </DetailSection>
-                    
-                    <DetailSection title="Filing Officer">
-                      <code className="bg-gray-100 dark:bg-gray-800 p-1 rounded text-sm font-mono truncate max-w-full">
-                        {firData.officerAddress}
-                      </code>
-                    </DetailSection>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             <Card>
               <CardHeader>
@@ -534,6 +487,52 @@ export default function TaskDetailPage() {
               </CardHeader>
               <CardContent>
                 <ComplaintTimeline timeline={timeline} />
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button className="w-full flex items-center gap-2" variant="outline">
+                  <Phone className="h-4 w-4" />
+                  Contact Complainant
+                </Button>
+                <Button className="w-full flex items-center gap-2" variant="outline">
+                  <MessageSquare className="h-4 w-4" />
+                  Send Update
+                </Button>
+                <Button className="w-full flex items-center gap-2" variant="outline">
+                  <Ambulance className="h-4 w-4" />
+                  Request Support
+                </Button>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Case Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <p className="font-medium">{STATUS_MAP[currentStatus as keyof typeof STATUS_MAP].label}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Created</p>
+                  <p className="font-medium">{new Date(task.createdAt).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Severity</p>
+                  <p className="font-medium">{severity === 'high' ? 'High' : 'Medium'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">FIR Status</p>
+                  <p className="font-medium">{task.Resolved ? 'Filed' : 'Pending'}</p>
+                </div>
               </CardContent>
             </Card>
           </div>
