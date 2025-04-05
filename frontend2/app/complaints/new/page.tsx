@@ -24,7 +24,7 @@ const CONTRACT_ABI = [
 ];
 
 // Contract address - replace with your deployed contract address
-const CONTRACT_ADDRESS = "0xYourContractAddressHere";
+const CONTRACT_ADDRESS = "0x61604bBC1D27D8C2a3646A6B11bd7E82a78dA5f0";
 
 export default function NewComplaintPage() {
   const router = useRouter()
