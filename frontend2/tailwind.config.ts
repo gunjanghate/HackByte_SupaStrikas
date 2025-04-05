@@ -75,10 +75,11 @@ const config = {
       },
       fontFamily: {
         sans: ["var(--font-space-grotesk)", "system-ui", "sans-serif"],
+        poppins: ['var(--font-poppins)', 'font-space-grotesk'],
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [require("tailwindcss-animate"),require('tailwindcss-motion')],
 } satisfies Config
 
 export default config

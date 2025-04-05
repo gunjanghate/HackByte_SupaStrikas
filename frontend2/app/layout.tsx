@@ -3,7 +3,13 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Space_Grotesk } from "next/font/google"
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider"
+import { Poppins } from "next/font/google";
 
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-poppins", // optional for tailwind integration
+});
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -33,11 +39,13 @@ export default function RootLayout({
   
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={poppins.variable}>
       <body className={`${spaceGrotesk.variable} font-sans`}>
+
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           {children}
         </ThemeProvider>
+   
       </body>
     </html>
   )

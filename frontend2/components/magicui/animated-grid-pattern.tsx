@@ -25,15 +25,15 @@ export interface AnimatedGridPatternProps
 }
 
 export function AnimatedGridPattern({
-  width = 40,
-  height = 40,
-  x = -1,
-  y = -1,
+  width = 60,
+  height = 50,
+  x = 1,
+  y = -2,
   strokeDasharray = 0,
   numSquares = 50,
   className,
-  maxOpacity = 0.5,
-  duration = 4,
+  maxOpacity = 1.5,
+  duration = 2,
   repeatDelay = 0.5,
   ...props
 }: AnimatedGridPatternProps) {
@@ -105,7 +105,7 @@ export function AnimatedGridPattern({
       ref={containerRef}
       aria-hidden="true"
       className={cn(
-        "pointer-events-none absolute inset-0 h-full w-full fill-gray-400/30 stroke-gray-400/30",
+        "pointer-events-none bg-green-300/30 absolute inset-0 h-full w-full fill-green-900 stroke-green-600/20",
         className,
       )}
       {...props}
