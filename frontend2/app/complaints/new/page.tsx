@@ -17,8 +17,6 @@ import { useComplaintStore } from '../../../lib/stores/complaintStore'
 import axios from "axios"
 import { ethers } from "ethers"
 
- 
-
 // ABI for the SecureFIRSystem contract
 const CONTRACT_ABI = [
   "function createFIR(string memory _title, string memory _description, string memory _complainantName, string memory _complainantContact, uint256 _incidentDate, string memory _incidentLocation, string memory _category, bool _includeComplainantAccess, string[] memory _evidenceCids) external",
@@ -311,9 +309,28 @@ export default function NewComplaintPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <header className="border-b">
+        <div className="container flex h-16 items-center px-4 md:px-6">
+          <Link href="/">
+            <ArrowLeft className="h-5 w-5" />
+            <span className="sr-only">Back</span>
+          </Link>
+          <div className="flex items-center gap-2 ml-4">
+            <Shield className="h-6 w-6 text-primary" />
+            <span className="text-xl font-bold">DeFIR</span>
+          </div>
+          <div className="ml-auto">
+            <Button 
+              onClick={connectWallet} 
+              variant={walletConnected ? "outline" : "default"}
+            >
+              {walletConnected ? "Wallet Connected" : "Connect Wallet"}
+            </Button>
+          </div>
+        </div>
+      </header>
 
-
-      <main className="container px-4 mt-24 md:px-6 py-8">
+      <main className="container px-4 md:px-6 py-8">
         <div className="max-w-3xl mx-auto">
           <h1 className="text-2xl font-bold mb-2">Register New Complaint</h1>
           <p className="text-muted-foreground mb-6">
@@ -348,7 +365,7 @@ export default function NewComplaintPage() {
                 <Button variant="outline" asChild>
                   <Link href="/">Cancel</Link>
                 </Button>
-                <Button className="bg-green-600 hover:bg-green-700" onClick={handleNext} disabled={!complaintType || !description}>
+                <Button onClick={handleNext} disabled={!complaintType || !description}>
                   Next
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -378,7 +395,7 @@ export default function NewComplaintPage() {
                 <Button variant="outline" onClick={handleBack}>
                   Back
                 </Button>
-                <Button className="bg-green-600 hover:bg-green-700" onClick={handleNext} disabled={!locationAddress}>
+                <Button onClick={handleNext} disabled={!locationAddress}>
                   Next
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -446,7 +463,7 @@ export default function NewComplaintPage() {
                 <Button variant="outline" onClick={handleBack}>
                   Back
                 </Button>
-                <Button className="bg-green-600 hover:bg-green-700" onClick={handleNext}>
+                <Button onClick={handleNext}>
                   Next
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -492,7 +509,7 @@ export default function NewComplaintPage() {
                 <Button variant="outline" onClick={handleBack}>
                   Back
                 </Button>
-                <Button className="bg-green-600 hover:bg-green-700" onClick={handleNext}>
+                <Button onClick={handleNext}>
                   Next
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -579,7 +596,7 @@ export default function NewComplaintPage() {
                 <Button variant="outline" onClick={handleBack}>
                   Back
                 </Button>
-                <Button className="bg-green-600 hover:bg-green-700"
+                <Button 
                   onClick={handleSubmit}
                   disabled={isSubmitting || loading}
                 >

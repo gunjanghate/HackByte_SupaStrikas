@@ -46,8 +46,11 @@ export const useComplaintStore = create<ComplaintState>()(
 
       fetchComplaints: async () => {
         try {
-          const response = await fetch('http://localhost:5000/getComplaints')
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+          const response = await fetch('http://localhost:5000/getComplaints').catch(err => {
+            console.error("Network error:", err)
+            throw new Error("Failed to fetch complaints due to network error")
+          })
+          if (!response || !response.ok) throw new Error(`HTTP error! status: ${response?.status || 'unknown'}`)
 
           const { cids } = await response.json()
           if (!Array.isArray(cids)) throw new Error('Invalid CID array')

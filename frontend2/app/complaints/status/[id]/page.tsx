@@ -81,24 +81,34 @@ export default function TaskDetailPage() {
     trackingId: string
   ): Promise<string | null> => {
     try {
-      // Step 1: Get array of CIDs from your backend
+      console.log("Fetching CIDs from backend...");
       const cidRes = await axios.get("http://localhost:5000/getComplaints");
       const { cids } = cidRes.data;
 
+      console.log("CIDs fetched:", cids);
+
       for (const cid of cids) {
-        // Fixed template string syntax
+        console.log(`Fetching metadata for CID: ${cid}`);
         const metadataRes = await axios.get(`https://${cid}.ipfs.dweb.link`);
         const data = metadataRes.data;
 
-        if (data.trackingId === trackingId) {
-          const evidenceCID = data.evidenceFiles?.[0];
-          if (!evidenceCID) return null;
+        console.log("Metadata fetched:", data);
 
-          // Return full image URL with fixed template string
-          return `https://${evidenceCID}.ipfs.dweb.link`;
+        if (data.trackingId === trackingId) {
+          console.log(`Matching tracking ID found: ${trackingId}`);
+          const evidenceCID = data.evidenceFiles?.[0];
+          if (!evidenceCID) {
+            console.log("No evidence CID found for this tracking ID.");
+            return null;
+          }
+
+          const evidenceUrl = `https://${evidenceCID}.ipfs.dweb.link`;
+          console.log("Evidence URL generated:", evidenceUrl);
+          return evidenceUrl;
         }
       }
 
+      console.log("No matching tracking ID found.");
       return null;
     } catch (err) {
       console.error("Error fetching evidence image:", err);
@@ -106,88 +116,115 @@ export default function TaskDetailPage() {
     }
   };
 
-  // Function to fetch FIR data
   const fetchFIRData = async () => {
     try {
+      console.log("Fetching FIR data from backend...");
       const response = await axios.get("http://localhost:5000/getComplaints");
       const cids = response.data.cids;
 
+      console.log("FIR CIDs fetched:", cids);
+
       const firDetails = await Promise.all(
         cids.map(async (cid: string) => {
-          // Fixed template string syntax
+          console.log(`Fetching FIR data for CID: ${cid}`);
           const ipfsResponse = await axios.get(`https://ipfs.io/ipfs/${cid}`);
           const fir = ipfsResponse.data;
 
-          // Convert evidence CIDs to full IPFS URLs
+          console.log("FIR data fetched:", fir);
+
           const evidenceLinks = Array.isArray(fir.evidenceFiles)
             ? fir.evidenceFiles.map(
                 (evidenceCid: string) => `https://ipfs.io/ipfs/${evidenceCid}`
               )
             : [];
 
+          console.log("Evidence links generated:", evidenceLinks);
+
           return {
             ...fir,
-            evidenceLinks, // Add this to use in rendering
+            evidenceLinks,
           };
         })
       );
 
+      console.log("All FIR details fetched:", firDetails);
       setFirData(firDetails);
     } catch (error) {
       console.error("Error fetching FIR data:", error);
     }
   };
 
-  // Load evidence URLs for the current complaint
   const loadEvidenceUrls = async (complaint: Complaint) => {
     if (
       !complaint ||
       !complaint.evidenceFiles ||
       complaint.evidenceFiles.length === 0
     ) {
+      console.log("No evidence files to load.");
       return;
     }
+
+    console.log("Loading evidence URLs for complaint:", complaint);
 
     const urls: Record<string, string> = {};
 
     for (const cid of complaint.evidenceFiles) {
-      // Fixed template string syntax
-      urls[cid] = `https://ipfs.io/ipfs/${cid}`;
+      const evidenceUrl = `https://ipfs.io/ipfs/${cid}`;
+      console.log(`Generated evidence URL for CID ${cid}: ${evidenceUrl}`);
+      urls[cid] = evidenceUrl;
     }
 
     setEvidenceUrls(urls);
+    console.log("Evidence URLs loaded:", urls);
   };
 
   useEffect(() => {
+    console.log("Searching for complaint with ID:", params.id);
     const foundComplaint = complaints.find((c) => c.trackingId === params.id);
+
     if (foundComplaint) {
+      console.log("Complaint found:", foundComplaint);
       setTask(foundComplaint);
-      // Load evidence URLs when complaint is found
       loadEvidenceUrls(foundComplaint);
       setLoading(false);
     } else {
+      console.log("No complaint found with the given ID.");
       setLoading(false);
     }
 
-    // Fetch FIR data
+    console.log("Fetching FIR data...");
     fetchFIRData();
   }, [params.id, complaints]);
 
   const CONTRACT_ADDRESS = "0x61604bBC1D27D8C2a3646A6B11bd7E82a78dA5f0";
 
   const getTaskStatus = (complaint: Complaint) => {
-    if (complaint.Resolved) return "resolved";
-    if (complaint.ActionTaken) return "pending";
+    console.log("Determining task status for complaint:", complaint);
+
+    if (complaint.Resolved) {
+      console.log("Task status: resolved");
+      return "resolved";
+    }
+    if (complaint.ActionTaken) {
+      console.log("Task status: pending");
+      return "pending";
+    }
     if (
       complaint.PoliceAssigned ||
       complaint.PoliceDispatched ||
       complaint.PoliceArrived
-    )
+    ) {
+      console.log("Task status: in_progress");
       return "in_progress";
+    }
+
     const isNewUrgent =
       complaint.voicemailReceived ||
       Date.now() - new Date(complaint.createdAt).getTime() < 3600000;
-    return isNewUrgent ? "urgent" : "new";
+
+    const status = isNewUrgent ? "urgent" : "new";
+    console.log("Task status:", status);
+    return status;
   };
 
   const getTimeline = (complaint: Complaint) => {
@@ -268,7 +305,7 @@ export default function TaskDetailPage() {
 
     // In a real app, you would save this note to your backend
     console.log(
-      `Activity note submitted for ${task.trackingId}: ${activityNote}`
+     ` Activity note submitted for ${task.trackingId}: ${activityNote}`
     );
 
     // Clear the input after submission
@@ -374,9 +411,22 @@ export default function TaskDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <header className="border-b">
+        <div className="container flex h-16 items-center px-4 md:px-6">
+          <div className="flex items-center gap-2">
+            <Shield className="h-6 w-6 text-primary" />
+            <span className="text-xl font-bold">DeFIR</span>
+          </div>
+          <Button variant="ghost" size="icon" asChild className="ml-4">
+            <Link href="/police/dashboard">
+              <ArrowLeft className="h-5 w-5" />
+              <span className="sr-only">Back</span>
+            </Link>
+          </Button>
+        </div>
+      </header>
 
-
-      <main className="container mt-24 px-4 md:px-6 py-8">
+      <main className="container px-4 md:px-6 py-8">
         <div className="grid gap-6 md:grid-cols-3">
           <div className="md:col-span-2 space-y-6">
             <Card>
