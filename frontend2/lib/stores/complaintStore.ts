@@ -47,95 +47,65 @@ export const useComplaintStore = create<ComplaintState>()(
   
         fetchComplaints: async () => {
           try {
-            // 1. Get all complaints from backend
-            const response = await fetch('http://localhost:5000/getComplaints')
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`)
-            }
-            
-            const responseJson = await response.json()
-            
-            // Extract data from the response - this is the key change
-            const data = responseJson.data || []
-            
-            // 2. Validate response structure
-            if (!Array.isArray(data)) {
-              throw new Error('Invalid response format: expected array in data field')
-            }
+            const response = await fetch('http://localhost:5000/getComplaints') // returns { cids: [...] }
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
         
-            // 3. Process valid complaints
-            const validComplaints = await Promise.all(
-              data
-                .filter((bc: any) => bc?.ipfsHash || bc?.ipfsCid) // Filter valid entries
-                .map(async (bc: { ipfsCid?: string; ipfsHash?: string; trackingId: string }) => {
-                  try {
-                    const ipfsHash = bc.ipfsHash || bc.ipfsCid
-                    if (!ipfsHash) return null
+            const { cids } = await response.json()
+            if (!Array.isArray(cids)) throw new Error('Invalid CID array')
         
-                    const complaintResponse = await fetch(`https://${ipfsHash}.ipfs.dweb.link`)
-                    if (!complaintResponse.ok) {
-                      console.error(`Failed to fetch IPFS data for ${ipfsHash}`)
-                      return null
-                    }
+            const allFIRs = await Promise.all(
+              cids.map(async (cid: string) => {
+                try {
+                  const res = await fetch(`https://${cid}.ipfs.dweb.link`)
+                  if (!res.ok) throw new Error('Failed to fetch IPFS data')
+                  const data = await res.json()
+                console.log("Fetched data:", data)
         
-                    const complaintData = await complaintResponse.json()
-                    
-
-                    // Process evidence files
-                    const evidenceFiles = await Promise.all(
-                      (complaintData.evidenceFiles || []).map(async (cid: string) => {
-                        try {
-                          if (!get().evidenceCache[cid]) {
-                            const fileResponse = await fetch(`https://${cid}.ipfs.dweb.link`)
-                            if (!fileResponse.ok) return cid // Skip failed files but keep CID
-                            
-                            const blob = await fileResponse.blob()
-                            const fileType = fileResponse.headers.get('content-type') || 'application/octet-stream'
-                            const file = new File([blob], `evidence-${cid}`, { type: fileType })
-                            
-                            set((state) => ({
-                              evidenceCache: { ...state.evidenceCache, [cid]: file }
-                            }))
-                          }
-                          return cid
-                        } catch (error) {
-                          console.error('Error processing evidence file:', cid, error)
-                          return cid // Return CID even if fetch fails
-                        }
-                      })
-                    )
+                  // Load evidence files if needed
+                  const evidenceFiles = await Promise.all(
+                    (data.evidenceFiles || []).map(async (cid: string) => {
+                      if (!get().evidenceCache[cid]) {
+                        const fileRes = await fetch(`https://${cid}.ipfs.dweb.link`)
+                        if (!fileRes.ok) return cid
         
-                    return {
-                      ...complaintData,
-                      id: complaintData.trackingId,
-                      trackingId: complaintData.trackingId,
-                      evidenceFiles,
-                      createdAt: new Date(complaintData.createdAt || Date.now())
-                    } as Complaint
-                  } catch (error) {
-                    console.error('Error processing complaint:', bc.trackingId, error)
-                    return null
-                  }
-                })
+                        const blob = await fileRes.blob()
+                        const fileType = fileRes.headers.get('content-type') || 'application/octet-stream'
+                        const file = new File([blob], `evidence-${cid}`, { type: fileType })
+        
+                        set((state) => ({
+                          evidenceCache: { ...state.evidenceCache, [cid]: file }
+                        }))
+                      }
+                      return cid
+                    })
+                  )
+        
+                  return {
+                    ...data,
+                    id: data.trackingId,
+                    evidenceFiles,
+                    createdAt: new Date(data.createdAt || Date.now())
+                  } as Complaint
+                } catch (err) {
+                  console.error("Error loading from CID:", cid, err)
+                  return null
+                }
+              })
             )
         
-            // 4. Filter out null values and merge with existing complaints
-            const filteredComplaints = validComplaints.filter(Boolean) as Complaint[]
-            
+            const filtered = allFIRs.filter(Boolean) as Complaint[]
+        
             set((state) => ({
               complaints: [
-                ...filteredComplaints.filter(fc => 
-                  !state.complaints.find(sc => sc.trackingId === fc.trackingId)
-                ),
+                ...filtered.filter(fc => !state.complaints.find(sc => sc.trackingId === fc.trackingId)),
                 ...state.complaints
               ]
             }))
-        
-          } catch (error) {
-            console.error('Failed to fetch complaints:', error)
-            // Consider adding error state to store
+          } catch (err) {
+            console.error("Failed to fetch FIRs from Pinata:", err)
           }
         }
+        
       }),
       {
         name: 'complaint-storage'

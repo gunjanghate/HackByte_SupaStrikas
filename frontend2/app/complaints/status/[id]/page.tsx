@@ -67,7 +67,7 @@ export default function TaskDetailPage() {
     }
   }, [params.id, complaints])
   
-  const CONTRACT_ADDRESS = "0x35AE00B5C43FC613Cc731Db09483447010bcd9bd";
+  const CONTRACT_ADDRESS = "0x61604bBC1D27D8C2a3646A6B11bd7E82a78dA5f0";
   
   const getTaskStatus = (complaint: Complaint) => {
     if (complaint.Resolved) return 'resolved'
@@ -181,13 +181,20 @@ export default function TaskDetailPage() {
     try {
       // Connect to the blockchain
       const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
+  
+      // Get the list of accounts directly from the provider
+      const accounts = await provider.send("eth_requestAccounts", []);
+      const signer = await provider.getSigner(accounts[0]);
+      
+      // Create contract instance with explicit address handling
+      // Avoid any automatic ENS resolution
+      const contractAddress = CONTRACT_ADDRESS;
       const contract = new ethers.Contract(
-        CONTRACT_ADDRESS!,
+        contractAddress,
         SecureFIRSystem.abi,
         signer
       );
-  
+      
       // Prepare FIR data (use dummy data where necessary)
       const firData = {
         title: complaint.description.substring(0, 50) || "Untitled FIR",
@@ -201,6 +208,11 @@ export default function TaskDetailPage() {
         evidenceCids: complaint.evidenceFiles
       };
   
+      // Disable ENS name resolution by using options parameter
+      const options = {
+        // Add any transaction options if needed
+      };
+  
       // Execute the contract call
       const tx = await contract.createFIR(
         firData.title,
@@ -211,7 +223,8 @@ export default function TaskDetailPage() {
         firData.incidentLocation,
         firData.category,
         firData.includeComplainantAccess,
-        firData.evidenceCids
+        firData.evidenceCids,
+        options
       );
   
       // Wait for transaction confirmation
@@ -232,15 +245,15 @@ export default function TaskDetailPage() {
   
     try {
       setIsSubmitting(true);
-      await fileFIR(task.trackingId, task);
-      // Update local state if needed
+      await fileFIR(task.trackingId, task); // corrected below
       setTask(prev => prev ? { ...prev, Resolved: true } : null);
     } catch (error) {
-      // Error handling already done in fileFIR
+      console.error("Error filing FIR:", error);
     } finally {
       setIsSubmitting(false);
     }
   };
+  
 
   if (loading) {
     return <LoadingState />

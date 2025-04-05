@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import axios from "axios";
 import { useParams, useRouter } from "next/navigation"
 import {
   Shield,
@@ -17,6 +18,7 @@ import {
   Send,
   Ambulance,
   ChevronDown,
+  ExternalLink,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -56,6 +58,8 @@ export default function TaskDetailPage() {
   const [loading, setLoading] = useState(true)
   const [activityNote, setActivityNote] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [txReceipt, setTxReceipt] = useState<any>(null)
+  const [firData, setFirData] = useState<any>(null)
 
   useEffect(() => {
     const foundComplaint = complaints.find(c => c.trackingId === params.id)
@@ -63,12 +67,12 @@ export default function TaskDetailPage() {
       setTask(foundComplaint)
       setLoading(false)
     } else {
-
-
       setLoading(false)
     }
   }, [params.id, complaints])
+  
   const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS2;
+  
   const getTaskStatus = (complaint: Complaint) => {
     if (complaint.Resolved) return 'resolved'
     if (complaint.ActionTaken) return 'pending'
@@ -100,8 +104,6 @@ export default function TaskDetailPage() {
           completed = complaint.PoliceAssigned
           description = "Officer assigned to investigate"
           break
-        
-          
         case 'arrived':
           completed = complaint.PoliceArrived
           description = "Officer arrived at the scene"
@@ -157,14 +159,12 @@ export default function TaskDetailPage() {
         break
     }
 
-   
     setTask({ ...task, ...updates })
+    console.log(`Status Taskkk to ${task}`)
   }
 
   const handleReportArrival = () => {
     if (!task) return
-
-    
     setTask({ ...task, PoliceArrived: true })
   }
 
@@ -172,17 +172,44 @@ export default function TaskDetailPage() {
     return complaint.voicemailReceived ? 'high' : 'medium'
   }
 
-  if (loading) {
-    return <LoadingState />
-  }
+  // Function to get FIR data from blockchain
 
-  if (!task) {
-    return <ErrorState taskId={params.id as string} />
-  }
 
-  const currentStatus = getTaskStatus(task)
-  const timeline = getTimeline(task)
-  const severity = getSeverity(task)
+  const getFIRData = async (firId: number) => {
+    try {
+      // Fetch evidence CIDs from your backend using Axios
+      const cidResponse = await axios.get("http://localhost:5000/getComplaints", {
+        params: { firId },
+      });
+  
+      const cidData = cidResponse.data;
+      console.log("CID Data:", cidData);
+  
+      // Fetch the complaint JSON from IPFS using the first CID
+      const complaintCid = cidData.cids[0]; // Assuming the first CID contains the complaint JSON
+      const ipfsResponse = await axios.get(`https://ipfs.io/ipfs/${complaintCid}`);
+      const firDetails = ipfsResponse.data;
+  
+      return {
+        id: firDetails.id.toString(),
+        title: firDetails.title,
+        description: firDetails.description,
+        complainantName: firDetails.complainantName,
+        complainantContact: firDetails.complainantContact,
+        incidentDate: new Date(firDetails.incidentDate * 1000).toLocaleString(),
+        incidentLocation: firDetails.incidentLocation,
+        category: firDetails.category,
+        status: firDetails.status,
+        evidenceCids: cidData.cids, // From backend
+        timestamp: new Date(firDetails.timestamp * 1000).toLocaleString(),
+        officerAddress: firDetails.officerAddress,
+      };
+    } catch (error) {
+      console.error("Error fetching FIR data:", error);
+      return null;
+    }
+  };
+  
 
   async function fileFIR(trackingId: string, complaint: Complaint): Promise<void> {
     try {
@@ -221,11 +248,43 @@ export default function TaskDetailPage() {
         firData.evidenceCids
       );
   
-      // Wait for transaction confirmation
-      await tx.wait();
+      // Wait for transaction confirmation and get receipt
+      const receipt = await tx.wait();
+      
+      // Parse receipt to find FIR ID
+      // Look for FIRCreated event in the logs
+      const firCreatedEvent = receipt.logs.find((log: any) => {
+        try {
+          const parsedLog = contract.interface.parseLog(log);
+          return parsedLog?.name === "FIRCreated";
+        } catch (e) {
+          return false;
+        }
+      });
+      
+      let firId = null;
+      if (firCreatedEvent) {
+        const parsedLog = contract.interface.parseLog(firCreatedEvent);
+        firId = parsedLog?.args?.firId?.toString();
+      }
+      
+      // Save receipt data
+      setTxReceipt({
+        hash: receipt.hash,
+        blockNumber: receipt.blockNumber,
+        gasUsed: receipt.gasUsed?.toString(),
+        effectiveGasPrice: receipt.effectiveGasPrice?.toString(),
+        status: receipt.status,
+        firId: firId
+      });
+      
+      // If we found a FIR ID, fetch the FIR data
+      if (firId) {
+        const fetchedFirData = await getFIRData(parseInt(firId));
+        setFirData(fetchedFirData);
+      }
       
       console.log(`FIR created successfully for tracking ID: ${trackingId}`);
-      alert("FIR successfully filed on blockchain");
   
     } catch (error) {
       console.error("Error filing FIR:", error);
@@ -249,6 +308,23 @@ export default function TaskDetailPage() {
       setIsSubmitting(false);
     }
   };
+
+  const getExplorerUrl = (hash: string) => {
+    // Adjust the network based on your deployment (mainnet, goerli, sepolia, etc.)
+    return `https://sepolia.etherscan.io/tx/${hash}`;
+  };
+
+  if (loading) {
+    return <LoadingState />
+  }
+
+  if (!task) {
+    return <ErrorState taskId={params.id as string} />
+  }
+
+  const currentStatus = getTaskStatus(task)
+  const timeline = getTimeline(task)
+  const severity = getSeverity(task)
 
   return (
     <div className="min-h-screen bg-background">
@@ -358,14 +434,99 @@ export default function TaskDetailPage() {
                   </Button>
                   <Button
                     className="gap-2"
-                    onClick={() => handleFileFIR()}
+                    onClick={handleFileFIR}
+                    disabled={isSubmitting}
                    >
                     <FileText className="h-4 w-4" />
-                    File FIR
+                    {isSubmitting ? "Filing..." : "File FIR"}
                   </Button>
                 </div>
               </CardFooter>
             </Card>
+
+            {txReceipt && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Blockchain Transaction Details</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <DetailSection title="Transaction Hash">
+                      <div className="flex items-center gap-2">
+                        <code className="bg-gray-100 dark:bg-gray-800 p-1 rounded text-sm font-mono truncate max-w-full">
+                          {txReceipt.hash}
+                        </code>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => window.open(getExplorerUrl(txReceipt.hash), '_blank')}
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </DetailSection>
+                    
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <DetailSection title="Block Number" content={txReceipt.blockNumber.toString()} />
+                      <DetailSection title="Gas Used" content={ethers.formatUnits(txReceipt.gasUsed, 'gwei') + " gwei"} />
+                    </div>
+                    
+                    <DetailSection title="Status">
+                      <Badge className={txReceipt.status === 1 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                        {txReceipt.status === 1 ? "Success" : "Failed"}
+                      </Badge>
+                    </DetailSection>
+                    
+                    {txReceipt.firId && (
+                      <DetailSection title="FIR ID" content={`#${txReceipt.firId}`} />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {firData && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Filed FIR Details</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <DetailSection title="FIR ID" content={`#${firData.id}`} />
+                      <DetailSection title="Filed On" content={firData.timestamp} />
+                    </div>
+                    
+                    <DetailSection title="FIR Title" content={firData.title} />
+                    <DetailSection title="Description" content={firData.description} />
+                    
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <DetailSection title="Complainant" content={firData.complainantName} />
+                      <DetailSection title="Category" content={firData.category} />
+                    </div>
+                    
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <DetailSection title="Incident Date" content={firData.incidentDate} />
+                      <DetailSection title="Location" content={firData.incidentLocation} />
+                    </div>
+                    
+                    <DetailSection title="FIR Status">
+                      <Badge className="bg-blue-100 text-blue-800">
+                        {firData.status === "0" ? "Pending" : 
+                         firData.status === "1" ? "Under Investigation" : 
+                         firData.status === "2" ? "Closed" : "Unknown"}
+                      </Badge>
+                    </DetailSection>
+                    
+                    <DetailSection title="Filing Officer">
+                      <code className="bg-gray-100 dark:bg-gray-800 p-1 rounded text-sm font-mono truncate max-w-full">
+                        {firData.officerAddress}
+                      </code>
+                    </DetailSection>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardHeader>

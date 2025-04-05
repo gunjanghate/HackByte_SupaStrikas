@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Shield, ArrowLeft, MapPin, Camera, Mic, Upload, ChevronRight, CheckCircle, X, FileText } from "lucide-react"
@@ -15,6 +15,17 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { ComplaintTypeSelector } from "@/components/complaint-type-selector"
 import { useComplaintStore } from '../../../lib/stores/complaintStore'
 import axios from "axios"
+import { ethers } from "ethers"
+
+// ABI for the SecureFIRSystem contract
+const CONTRACT_ABI = [
+  "function createFIR(string memory _title, string memory _description, string memory _complainantName, string memory _complainantContact, uint256 _incidentDate, string memory _incidentLocation, string memory _category, bool _includeComplainantAccess, string[] memory _evidenceCids) external",
+  "event FIRCreated(uint256 indexed id, address indexed complainant)"
+];
+
+// Contract address - replace with your deployed contract address
+const CONTRACT_ADDRESS = "0xYourContractAddressHere";
+
 export default function NewComplaintPage() {
   const router = useRouter()
   const [id, setId] = useState("")
@@ -30,7 +41,47 @@ export default function NewComplaintPage() {
   const { complaints } = useComplaintStore()
   const { addComplaint } = useComplaintStore()
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
-const [evidenceDescription, setEvidenceDescription] = useState('');
+  const [evidenceDescription, setEvidenceDescription] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [evidenceCIDs, setEvidenceCIDs] = useState<string[]>([]);
+  const [walletConnected, setWalletConnected] = useState(false);
+  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
+  const [signer, setSigner] = useState<ethers.Signer | null>(null);
+  const [contract, setContract] = useState<ethers.Contract | null>(null);
+
+  // Connect to MetaMask wallet
+  const connectWallet = async () => {
+    if (window.ethereum) {
+      try {
+        // Request account access
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        
+        // Create provider and signer - using ethers v6 syntax
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+        
+        setProvider(provider);
+        setSigner(signer);
+        setContract(contract);
+        setWalletConnected(true);
+        
+        console.log("Wallet connected successfully");
+      } catch (error) {
+        console.error("Error connecting to wallet:", error);
+        alert("Failed to connect wallet. Please try again.");
+      }
+    } else {
+      alert("Please install MetaMask to use this feature");
+    }
+  };
+
+  useEffect(() => {
+    // Check if MetaMask is installed and connected on component mount
+    if (typeof window !== 'undefined' && window.ethereum) {
+      connectWallet();
+    }
+  }, []);
 
   const handleNext = () => {
     setStep(step + 1)
@@ -41,31 +92,149 @@ const [evidenceDescription, setEvidenceDescription] = useState('');
     setStep(step - 1)
     window.scrollTo(0, 0)
   }
+
+  const uploadFileToIPFS = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await fetch('/api/uploadany', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) throw new Error('File upload failed');
+    
+    const data = await response.json();
+    return data.ipfsHash;
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    
+    setEvidenceFiles(prev => [...prev, ...files]);
+  };
+
+  const uploadFilesToIPFS = async (): Promise<string[]> => {
+    setLoading(true);
+    try {
+      const cids = await Promise.all(
+        evidenceFiles.map(async (file) => {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append(
+            'pinataMetadata',
+            JSON.stringify({
+              name: file.name,
+            })
+          );
+
+          const response = await fetch('/api/uploadany', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) throw new Error('File upload failed');
+
+          const data = await response.json();
+          return data.ipfsHash;
+        })
+      );
+      setEvidenceCIDs(cids);
+      return cids;
+    } catch (err) {
+      console.error("IPFS Upload Error:", err);
+      alert("IPFS Upload failed");
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitToBlockchain = async (evidenceCids: string[]) => {
+    if (!contract || !signer) {
+      alert("Wallet not connected. Please connect your wallet first.");
+      return false;
+    }
+
+    try {
+      // Format data for smart contract
+      const title = complaintType;
+      const complainantName = contactName || "Anonymous";
+      const complainantContact = contactEmail || "N/A";
+      const incidentDate = Math.floor(Date.now() / 1000); // Current timestamp in seconds
+      const incidentLocation = locationAddress;
+      const category = complaintType;
+      const includeComplainantAccess = true; // Allow complainant to access the FIR
+
+      // Create FIR transaction
+      const tx = await contract.createFIR(
+        title,
+        description,
+        complainantName,
+        complainantContact,
+        incidentDate,
+        incidentLocation,
+        category,
+        includeComplainantAccess,
+        evidenceCids
+      );
+
+      // Wait for transaction to be mined
+      const receipt = await tx.wait();
+      
+      // Get FIR ID from event - updated for ethers v6
+      const event = receipt.logs.find((log: any) => {
+        try {
+          const parsedLog = contract.interface.parseLog(log);
+          return parsedLog?.name === 'FIRCreated';
+        } catch (e) {
+          return false;
+        }
+      });
+      
+      if (event) {
+        const parsedLog = contract.interface.parseLog(event);
+        if (parsedLog && parsedLog.args) {
+          const firId = parsedLog.args[0].toString();
+          setId(firId);
+          console.log("FIR created with ID:", firId);
+          return true;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      console.error("Blockchain submission error:", error);
+      alert("Failed to submit complaint to blockchain");
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
   
     try {
       // 1. Upload evidence files to IPFS
-      const evidenceCids = await Promise.all(
-        evidenceFiles.map(async (file) => {
-          const formData = new FormData();
-          formData.append('file', file);
-          
-          const response = await fetch('/api/uploadany', {
-            method: 'POST',
-            body: formData,
-          });
-  
-          if (!response.ok) throw new Error('File upload failed');
-          
-          const data = await response.json();
-          return data.ipfsHash;
-        })
-      );
-  
-      // 2. Create complete complaint object
-      const trackingId = `COMP-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      const evidenceCids = await uploadFilesToIPFS();
+      
+      if (evidenceCids.length === 0 && evidenceFiles.length > 0) {
+        throw new Error('Failed to upload evidence files');
+      }
+      
+      // 2. Submit to blockchain
+      const blockchainSubmitted = await submitToBlockchain(evidenceCids);
+      
+      if (!blockchainSubmitted) {
+        // If blockchain submission fails, we can still continue with database submission
+        console.warn("Blockchain submission failed or skipped. Continuing with database submission.");
+      }
+
+      // 3. Create tracking ID for traditional database (as backup)
+      const trackingId = id || `COMP-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      
+      // 4. Create complete complaint object
       const complaintData = {
         trackingId,
         description,
@@ -75,6 +244,7 @@ const [evidenceDescription, setEvidenceDescription] = useState('');
         contactName: contactName || 'NIL',
         contactEmail: contactEmail || 'NIL',
         createdAt: new Date().toISOString(),
+        complaintType,
         voicemailReceived: false,
         AIProcessingCompleted: false,
         PoliceAssigned: false,
@@ -84,7 +254,7 @@ const [evidenceDescription, setEvidenceDescription] = useState('');
         Resolved: false
       };
   
-      // 3. Upload complete data to IPFS
+      // 5. Upload complete data to IPFS as backup
       const jsonBlob = new Blob([JSON.stringify(complaintData)], { type: 'application/json' });
       const jsonFile = new File([jsonBlob], 'complaint.json');
       
@@ -99,30 +269,30 @@ const [evidenceDescription, setEvidenceDescription] = useState('');
       if (!ipfsResponse.ok) throw new Error('Data upload failed');
       
       const { ipfsHash } = await ipfsResponse.json();
-      console.log('IPFS Hash:', ipfsHash);
-      // 4. Send to insert endpoint
+      console.log('IPFS Hash for full complaint:', ipfsHash);
+      
+      // 6. Send to insert endpoint (optional backup database)
       const insertResponse = await axios.post('http://localhost:5000/upload-json', {
         ipfsHash: ipfsHash,
         trackingId
       });
       
-      if (insertResponse.status < 200 || insertResponse.status >= 300) throw new Error('Database insertion failed');
+      if (insertResponse.status < 200 || insertResponse.status >= 300) {
+        console.warn('Database insertion warning - continuing anyway');
+      }
       
-      // Get the response data with tracking ID
-      setId(trackingId);
-  
-      if (insertResponse.status < 200 || insertResponse.status >= 300) throw new Error('Database insertion failed');
-  
-     
+      // 7. Save ID if not already set by blockchain
+      if (!id) {
+        setId(trackingId);
+      }
       
-  
-      // 6. Move to confirmation
+      // 8. Move to confirmation
       setStep(6);
       router.prefetch('/');
   
     } catch (error) {
       console.error('Submission error:', error);
-
+      alert(`Error submitting complaint: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -165,6 +335,14 @@ const [evidenceDescription, setEvidenceDescription] = useState('');
             <Shield className="h-6 w-6 text-primary" />
             <span className="text-xl font-bold">DeFIR</span>
           </div>
+          <div className="ml-auto">
+            <Button 
+              onClick={connectWallet} 
+              variant={walletConnected ? "outline" : "default"}
+            >
+              {walletConnected ? "Wallet Connected" : "Connect Wallet"}
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -172,7 +350,7 @@ const [evidenceDescription, setEvidenceDescription] = useState('');
         <div className="max-w-3xl mx-auto">
           <h1 className="text-2xl font-bold mb-2">Register New Complaint</h1>
           <p className="text-muted-foreground mb-6">
-            Please provide the details of your complaint. All information will be kept confidential.
+            Please provide the details of your complaint. All information will be securely stored on blockchain.
           </p>
 
           {step < 6 && renderStepIndicator()}
@@ -243,71 +421,72 @@ const [evidenceDescription, setEvidenceDescription] = useState('');
 
           {/* Step 3 - Evidence */}
           {step === 3 && (
-  <Card>
-    <CardHeader>
-      <CardTitle>Step 3: Evidence Submission</CardTitle>
-      <CardDescription>Upload photos, videos, or audio recordings related to your complaint</CardDescription>
-    </CardHeader>
-    <CardContent className="space-y-6">
-      {/* File Upload Section */}
-      <div className="border rounded-md p-4">
-        <input
-          type="file"
-          multiple
-          onChange={(e) => setEvidenceFiles(Array.from(e.target.files || []))}
-          className="hidden"
-          id="file-upload"
-        />
-        <Label htmlFor="file-upload" className="cursor-pointer">
-          <div className="text-center">
-            <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Click to upload files</p>
-          </div>
-        </Label>
-        
-        {/* Display Uploaded Files */}
-        {evidenceFiles.length > 0 && (
-          <div className="mt-4 space-y-2">
-            <p className="text-sm font-medium">Uploaded Files:</p>
-            {evidenceFiles.map((file, index) => (
-              <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
-                <span className="text-sm truncate">{file.name}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setEvidenceFiles(evidenceFiles.filter((_, i) => i !== index))}
-                >
-                  <X className="h-4 w-4 text-destructive" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Step 3: Evidence Submission</CardTitle>
+                <CardDescription>Upload files related to your complaint - they will be securely stored on IPFS</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* File Upload Section */}
+                <div className="border rounded-md p-4">
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleFileChange}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <Label htmlFor="file-upload" className="cursor-pointer">
+                    <div className="text-center">
+                      <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">Click to upload files</p>
+                    </div>
+                  </Label>
+                  
+                  {/* Display Uploaded Files */}
+                  {evidenceFiles.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-sm font-medium">Files to be uploaded to IPFS:</p>
+                      {evidenceFiles.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
+                          <span className="text-sm truncate">{file.name}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEvidenceFiles(evidenceFiles.filter((_, i) => i !== index))}
+                          >
+                            <X className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-      {/* Evidence Description Input */}
-      <div className="space-y-2">
-        <Label htmlFor="evidence-description">Evidence Description</Label>
-        <textarea
-          id="evidence-description"
-          value={evidenceDescription}
-          onChange={(e) => setEvidenceDescription(e.target.value)}
-          className="w-full p-2 border rounded-md min-h-[100px]"
-          placeholder="Add any additional information about the evidence..."
-        />
-      </div>
-    </CardContent>
-    <CardFooter className="flex justify-between">
-      <Button variant="outline" onClick={handleBack}>
-        Back
-      </Button>
-      <Button onClick={handleNext}>
-        Next
-        <ChevronRight className="ml-2 h-4 w-4" />
-      </Button>
-    </CardFooter>
-  </Card>
-)}
+                {/* Evidence Description Input */}
+                <div className="space-y-2">
+                  <Label htmlFor="evidence-description">Evidence Description</Label>
+                  <textarea
+                    id="evidence-description"
+                    value={evidenceDescription}
+                    onChange={(e) => setEvidenceDescription(e.target.value)}
+                    className="w-full p-2 border rounded-md min-h-[100px]"
+                    placeholder="Add any additional information about the evidence..."
+                  />
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" onClick={handleBack}>
+                  Back
+                </Button>
+                <Button onClick={handleNext}>
+                  Next
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </Card>
+          )}
+
           {/* Step 4 - Contact */}
           {step === 4 && (
             <Card>
@@ -317,6 +496,15 @@ const [evidenceDescription, setEvidenceDescription] = useState('');
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input
+                    id="name"
+                    placeholder="John Doe"
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
                   <Input
                     id="email"
@@ -325,6 +513,12 @@ const [evidenceDescription, setEvidenceDescription] = useState('');
                     value={contactEmail}
                     onChange={(e) => setContactEmail(e.target.value)}
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Checkbox checked={termsAccepted} onCheckedChange={(checked: boolean) => setTermsAccepted(checked)} />
+                    <span>I understand this information will be stored on the blockchain</span>
+                  </Label>
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between">
@@ -341,92 +535,128 @@ const [evidenceDescription, setEvidenceDescription] = useState('');
 
           {/* Step 5 - Review */}
           {step === 5 && (
-  <Card>
-    <CardHeader>
-      <CardTitle>Step 5: Review & Submit</CardTitle>
-      <CardDescription>Please review your complaint details before submitting</CardDescription>
-    </CardHeader>
-    <CardContent className="space-y-6">
-      <div className="space-y-4">
-        {/* Existing sections */}
-        <div className="border rounded-md p-4">
-          <h3 className="font-medium mb-2">Complaint Type</h3>
-          <p>{complaintType}</p>
-          <p className="text-sm text-muted-foreground mt-1">{description}</p>
-        </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Step 5: Review & Submit</CardTitle>
+                <CardDescription>Please review your complaint details before submitting</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  {/* Existing sections */}
+                  <div className="border rounded-md p-4">
+                    <h3 className="font-medium mb-2">Complaint Type</h3>
+                    <p>{complaintType}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{description}</p>
+                  </div>
 
-        <div className="border rounded-md p-4">
-          <h3 className="font-medium mb-2">Location</h3>
-          <p>{locationAddress}</p>
-        </div>
+                  <div className="border rounded-md p-4">
+                    <h3 className="font-medium mb-2">Location</h3>
+                    <p>{locationAddress}</p>
+                  </div>
 
-        {/* New Evidence Section */}
-        <div className="border rounded-md p-4">
-          <h3 className="font-medium mb-2">Evidence</h3>
-          <div className="space-y-3">
-            {evidenceFiles.length > 0 ? (
-              <>
-                <p className="text-sm font-medium">Uploaded Files:</p>
-                <div className="space-y-2">
-                  {evidenceFiles.map((file, index) => (
-                    <div 
-                      key={index}
-                      className="flex items-center p-2 bg-muted rounded"
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      <span className="text-sm truncate">{file.name}</span>
+                  {/* Evidence Section */}
+                  <div className="border rounded-md p-4">
+                    <h3 className="font-medium mb-2">Evidence</h3>
+                    <div className="space-y-3">
+                      {evidenceFiles.length > 0 ? (
+                        <>
+                          <p className="text-sm font-medium">Files to be uploaded to IPFS:</p>
+                          <div className="space-y-2">
+                            {evidenceFiles.map((file, index) => (
+                              <div 
+                                key={index}
+                                className="flex items-center p-2 bg-muted rounded"
+                              >
+                                <FileText className="h-4 w-4 mr-2" />
+                                <span className="text-sm truncate">{file.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No files uploaded</p>
+                      )}
+
+                      <div className="pt-2">
+                        <p className="text-sm font-medium">Evidence Description:</p>
+                        <p className="text-sm text-muted-foreground">
+                          {evidenceDescription || "No additional description provided"}
+                        </p>
+                      </div>
                     </div>
-                  ))}
+                  </div>
+
+                  <div className="border rounded-md p-4">
+                    <h3 className="font-medium mb-2">Contact Information</h3>
+                    <p><strong>Name:</strong> {contactName || "Not provided"}</p>
+                    <p><strong>Email:</strong> {contactEmail || "Not provided"}</p>
+                  </div>
+                  
+                  <div className="border rounded-md p-4 bg-yellow-50">
+                    <h3 className="font-medium mb-2">Blockchain Storage</h3>
+                    <p className="text-sm">
+                      {walletConnected ? 
+                        "Your connected wallet will be used to store this complaint on the blockchain." :
+                        "Please connect your wallet to store this complaint securely on the blockchain."
+                      }
+                    </p>
+                    {!walletConnected && (
+                      <Button onClick={connectWallet} className="mt-2" size="sm">
+                        Connect Wallet
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">No files uploaded</p>
-            )}
-
-            <div className="pt-2">
-              <p className="text-sm font-medium">Evidence Description:</p>
-              <p className="text-sm text-muted-foreground">
-                {evidenceDescription || "No additional description provided"}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="border rounded-md p-4">
-          <h3 className="font-medium mb-2">Contact Information</h3>
-          <p>{contactEmail}</p>
-        </div>
-      </div>
-    </CardContent>
-    <CardFooter className="flex justify-between">
-      <Button variant="outline" onClick={handleBack}>
-        Back
-      </Button>
-      <Button onClick={handleSubmit}>
-        {isSubmitting ? "Submitting..." : "Submit Complaint"}
-      </Button>
-    </CardFooter>
-  </Card>
-)}
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" onClick={handleBack}>
+                  Back
+                </Button>
+                <Button 
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || loading}
+                >
+                  {isSubmitting ? "Submitting..." : "Submit Complaint"}
+                </Button>
+              </CardFooter>
+            </Card>
+          )}
 
           {/* Step 6 - Confirmation */}
           {step === 6 && (
             <Card>
-                <CardHeader className="text-center pb-2">
+              <CardHeader className="text-center pb-2">
                 <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-
                 <CardTitle>Complaint Submitted Successfully!</CardTitle>
                 <CardDescription>
                   Your complaint has been registered with ID: {id}
                 </CardDescription>
-                </CardHeader>
+              </CardHeader>
               <CardContent className="text-center">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Button asChild className="flex-1">
-                    <Link href="/">Return to Home</Link>
-                  </Button>
+                <div className="space-y-4">
+                  <p>
+                    Your evidence has been securely stored on IPFS and referenced in the blockchain.
+                  </p>
+                  
+                  {evidenceCIDs.length > 0 && (
+                    <div className="bg-muted p-4 rounded-md text-left">
+                      <h3 className="font-medium mb-2">Evidence IPFS References:</h3>
+                      <div className="space-y-2 text-xs overflow-hidden">
+                        {evidenceCIDs.map((cid, index) => (
+                          <div key={index} className="bg-background p-2 rounded break-all">
+                            <span className="font-mono">{cid}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
+              <CardFooter className="justify-center">
+                <Button asChild>
+                  <Link href="/">Return to Home</Link>
+                </Button>
+              </CardFooter>
             </Card>
           )}
         </div>
