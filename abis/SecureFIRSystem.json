@@ -1,5 +1,138 @@
 [
 	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "firId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "cid",
+				"type": "string"
+			}
+		],
+		"name": "addEvidence",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "firId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "update",
+				"type": "string"
+			}
+		],
+		"name": "addFIRUpdate",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "officer",
+				"type": "address"
+			}
+		],
+		"name": "addPoliceOfficer",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "firId",
+				"type": "uint256"
+			}
+		],
+		"name": "approveFIR",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "firId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "officer",
+				"type": "address"
+			}
+		],
+		"name": "assignOfficerToFIR",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "_title",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "_description",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "_complainantName",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "_complainantContact",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_incidentDate",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "_incidentLocation",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "_category",
+				"type": "string"
+			},
+			{
+				"internalType": "bool",
+				"name": "_includeComplainantAccess",
+				"type": "bool"
+			},
+			{
+				"internalType": "string[]",
+				"name": "_evidenceCids",
+				"type": "string[]"
+			}
+		],
+		"name": "createFIR",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
 		"inputs": [],
 		"stateMutability": "nonpayable",
 		"type": "constructor"
@@ -21,6 +154,25 @@
 			}
 		],
 		"name": "EvidenceAdded",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "officer",
+				"type": "address"
+			}
+		],
+		"name": "FIRApproved",
 		"type": "event"
 	},
 	{
@@ -96,48 +248,12 @@
 	{
 		"inputs": [
 			{
-				"internalType": "uint256",
-				"name": "firId",
-				"type": "uint256"
-			},
-			{
-				"internalType": "string",
-				"name": "cid",
-				"type": "string"
-			}
-		],
-		"name": "addEvidence",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "firId",
-				"type": "uint256"
-			},
-			{
-				"internalType": "string",
-				"name": "update",
-				"type": "string"
-			}
-		],
-		"name": "addFIRUpdate",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
 				"internalType": "address",
 				"name": "officer",
 				"type": "address"
 			}
 		],
-		"name": "addPoliceOfficer",
+		"name": "removePoliceOfficer",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -148,67 +264,9 @@
 				"internalType": "uint256",
 				"name": "firId",
 				"type": "uint256"
-			},
-			{
-				"internalType": "address",
-				"name": "officer",
-				"type": "address"
 			}
 		],
-		"name": "assignOfficerToFIR",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "_title",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "_description",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "_complainantName",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "_complainantContact",
-				"type": "string"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_incidentDate",
-				"type": "uint256"
-			},
-			{
-				"internalType": "string",
-				"name": "_incidentLocation",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "_category",
-				"type": "string"
-			},
-			{
-				"internalType": "bool",
-				"name": "_includeComplainantAccess",
-				"type": "bool"
-			},
-			{
-				"internalType": "string[]",
-				"name": "_evidenceCids",
-				"type": "string[]"
-			}
-		],
-		"name": "createFIR",
+		"name": "resolveFIR",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -321,32 +379,6 @@
 			}
 		],
 		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "officer",
-				"type": "address"
-			}
-		],
-		"name": "removePoliceOfficer",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "firId",
-				"type": "uint256"
-			}
-		],
-		"name": "resolveFIR",
-		"outputs": [],
-		"stateMutability": "nonpayable",
 		"type": "function"
 	}
 ]
