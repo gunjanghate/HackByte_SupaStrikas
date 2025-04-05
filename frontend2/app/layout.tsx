@@ -4,6 +4,8 @@ import { Space_Grotesk } from "next/font/google"
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider"
 import { Poppins } from "next/font/google";
+import { Navbar } from "@/components/navbar";
+import { Footer } from "@/components/footer";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -43,7 +45,9 @@ export default function RootLayout({
       <body className={`${spaceGrotesk.variable} font-sans`}>
 
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+          <Navbar />
           {children}
+          <Footer/>
         </ThemeProvider>
    
       </body>

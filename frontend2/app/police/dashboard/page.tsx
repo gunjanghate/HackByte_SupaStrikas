@@ -83,16 +83,9 @@ export default function PoliceDashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container flex h-16 items-center px-4 md:px-6">
-          <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">DeFIR</span>
-          </div>
-        </div>
-      </header>
 
-      <main className="container px-4 md:px-6 py-8">
+
+      <main className="container px-4 mt-24 md:px-6 py-8">
         <div className="grid gap-8">
           {/* Total FIRs Section */}
           <Card>

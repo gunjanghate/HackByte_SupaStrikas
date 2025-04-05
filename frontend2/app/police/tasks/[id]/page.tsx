@@ -338,22 +338,9 @@ export default function TaskDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container flex h-16 items-center px-4 md:px-6">
-          <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">DeFIR</span>
-          </div>
-          <Button variant="ghost" size="icon" asChild className="ml-4">
-            <Link href="/police/dashboard">
-              <ArrowLeft className="h-5 w-5" />
-              <span className="sr-only">Back</span>
-            </Link>
-          </Button>
-        </div>
-      </header>
 
-      <main className="container px-4 md:px-6 py-8">
+
+      <main className="container mt-24 px-4 md:px-6 py-8">
         <div className="grid gap-6 md:grid-cols-3">
           <div className="md:col-span-2 space-y-6">
             <Card>

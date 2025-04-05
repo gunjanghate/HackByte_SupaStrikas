@@ -34,10 +34,7 @@ export default function TrackComplaintPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
-      <div className="flex items-center gap-2 mb-8">
-        <Shield className="h-8 w-8 text-primary" />
-        <span className="text-2xl font-bold">DeFIR</span>
-      </div>
+ 
 
       <Card className="w-full max-w-md">
         <CardHeader>
@@ -63,7 +60,7 @@ export default function TrackComplaintPage() {
               </p>
             </div>
 
-            <Button type="submit" className="w-full gap-2">
+            <Button type="submit" className="w-full gap-2 bg-green-600 hover:bg-green-700">
               <Search className="h-4 w-4" />
               Track Complaint
             </Button>

@@ -36,13 +36,13 @@ export default function Home() {
               sparkCount={10}
               duration={500}
             >
-        <Navbar />
+        {/* <Navbar /> */}
         <main>
           <Hero />
           <Services />
           <ContactSection />
         </main>
-        <Footer />
+        {/* <Footer /> */}
     </ClickSpark>
       </div>
   )
