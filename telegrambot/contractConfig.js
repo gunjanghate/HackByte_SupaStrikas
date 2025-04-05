@@ -11,7 +11,7 @@ const provider = new ethers.JsonRpcProvider(process.env.FILECOIN_RPC);
 const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
 // Your deployed contract address (replace this)
-const contractAddress = "0x35AE00B5C43FC613Cc731Db09483447010bcd9bd";
+const contractAddress = "0x61604bBC1D27D8C2a3646A6B11bd7E82a78dA5f0";
 
 const contract = new ethers.Contract(contractAddress, contractABI, signer);
 

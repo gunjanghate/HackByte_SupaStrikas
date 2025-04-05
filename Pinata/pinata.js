@@ -84,6 +84,30 @@ app.post("/upload-file", upload.single("file"), async (req, res) => {
   }
 });
 
+
+app.get('/getComplaints', async (req, res) => {
+  try {
+    const result = await axios.get('https://api.pinata.cloud/data/pinList', {
+      headers: {
+        pinata_api_key: 'e7f78f7984c8dc2aa46c',
+        pinata_secret_api_key: '357fc64160301a8c90ac160922cfaeb860673380802520cec4ccf966bd32cd61',
+      },
+      params: {
+        pageLimit: 1000,
+        status: 'pinned',
+        "metadata[name]": 'complaint.json'
+      }
+    })
+
+    const cids = result.data.rows.map(row => row.ipfs_pin_hash)
+    res.json({ cids })
+  } catch (err) {
+    console.error("Error fetching from Pinata:", err)
+    res.status(500).json({ error: 'Failed to fetch pinned complaints.' })
+  }
+})
+
+
 // Start server
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 

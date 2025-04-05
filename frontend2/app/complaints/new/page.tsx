@@ -93,20 +93,20 @@ export default function NewComplaintPage() {
     window.scrollTo(0, 0)
   }
 
-  const uploadFileToIPFS = async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append('file', file);
+  // const uploadFileToIPFS = async (file: File): Promise<string> => {
+  //   const formData = new FormData();
+  //   formData.append('file', file);
     
-    const response = await fetch('/api/uploadany', {
-      method: 'POST',
-      body: formData,
-    });
+  //   const response = await fetch('/api/uploadany', {
+  //     method: 'POST',
+  //     body: formData,
+  //   });
 
-    if (!response.ok) throw new Error('File upload failed');
+  //   if (!response.ok) throw new Error('File upload failed');
     
-    const data = await response.json();
-    return data.ipfsHash;
-  };
+  //   const data = await response.json();
+  //   return data.ipfsHash;
+  // };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -226,10 +226,7 @@ export default function NewComplaintPage() {
       // 2. Submit to blockchain
       const blockchainSubmitted = await submitToBlockchain(evidenceCids);
       
-      if (!blockchainSubmitted) {
-        // If blockchain submission fails, we can still continue with database submission
-        console.warn("Blockchain submission failed or skipped. Continuing with database submission.");
-      }
+
 
       // 3. Create tracking ID for traditional database (as backup)
       const trackingId = id || `COMP-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;

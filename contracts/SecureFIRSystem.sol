@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 contract SecureFIRSystem {
     address public owner;
-    
+
     struct FIR {
         uint256 id;
         string title;
@@ -13,7 +13,7 @@ contract SecureFIRSystem {
         uint256 incidentDate;
         string incidentLocation;
         string category;
-        string status;
+        string status; // "PendingApproval", "Registered", "Resolved"
         address complainantAddress;
         address assignedOfficer;
         bool isResolved;
@@ -27,6 +27,7 @@ contract SecureFIRSystem {
     uint256 private nextFIRId = 1;
 
     event FIRCreated(uint256 indexed id, address indexed complainant);
+    event FIRApproved(uint256 indexed id, address indexed officer);
     event FIRAssigned(uint256 indexed id, address indexed officer);
     event FIRResolved(uint256 indexed id);
     event FIRUpdated(uint256 indexed id, string update);
@@ -79,11 +80,11 @@ contract SecureFIRSystem {
         newFIR.incidentDate = _incidentDate;
         newFIR.incidentLocation = _incidentLocation;
         newFIR.category = _category;
-        newFIR.status = "Registered";
+        newFIR.status = "PendingApproval"; // 👈 initially set as pending
         newFIR.complainantAddress = msg.sender;
         newFIR.isResolved = false;
         newFIR.evidenceCids = _evidenceCids;
-        
+
         newFIR.authorizedParties.push(owner);
         if (_includeComplainantAccess) {
             newFIR.authorizedParties.push(msg.sender);
@@ -91,6 +92,17 @@ contract SecureFIRSystem {
 
         emit FIRCreated(nextFIRId, msg.sender);
         nextFIRId++;
+    }
+
+    function approveFIR(uint256 firId) external onlyPolice {
+        FIR storage fir = firs[firId];
+        require(keccak256(bytes(fir.status)) == keccak256(bytes("PendingApproval")), "FIR already approved or invalid status");
+
+        fir.status = "Registered";
+        fir.assignedOfficer = msg.sender;
+        fir.authorizedParties.push(msg.sender);
+
+        emit FIRApproved(firId, msg.sender);
     }
 
     function assignOfficerToFIR(uint256 firId, address officer) external onlyOwner onlyAuthorized(firId) {
