@@ -1,6 +1,3 @@
-Sure! Here's a polished and professional **README.md** tailored for your GitHub project [`HackByte_SupaStrikas`](https://github.com/DhruvTambekar24/HackByte_SupaStrikas). Based on your previous ideas, this assumes it’s a **blockchain-powered anonymous corruption reporting platform** with features like IPFS, encryption, and geotagging.
-
----
 
 # DeFIR – Anonymous Corruption Reporting Platform
 
