@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 
 export function ContactSection() {
   return (
-    <section className="py-16 md:py-24 bg-[#F3F3F3]">
+    <section className="py-16 md:py-20 border-2 border-gray-400 rounded-2xl drop-shadow-2xl flex justify-center items-center mx-auto w-3/4 bg-transparent backdrop-blur-2xl">
       <div className="container mx-auto px-4 md:px-6">
         <div className="max-w-3xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-center gap-8">

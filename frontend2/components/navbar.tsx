@@ -128,8 +128,10 @@ export function Navbar() {
       </button>
 
       <nav className="hidden md:flex items-center gap-6">
-        <Link href="/complaints/new" className="text-[#191A23] hover:text-[#85d088] font-medium transition-colors">
-        Make Complaint
+        <Link href="/verify" className="text-[#191A23] font-medium transition-colors">
+          <button className="px-4 py-2 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+            Make Complaint
+          </button>
         </Link>
         <Link href="/complaints/track" className="text-[#191A23] font-medium hover:text-[#85d088] transition-colors">
         Track Complaint
@@ -139,7 +141,7 @@ export function Navbar() {
         onClick={handleLogin}
         className="border-[#191A23] text-[#191A23] hover:bg-[#B9FF66] hover:text-[#191A23] hover:border-[#B9FF66]"
         >
-        {currentAccount ? `${currentAccount.slice(0, 6)}...` : "Login"}
+        {currentAccount ? ${currentAccount.slice(0, 6)}... : "Login"}
         </Button> */}
       </nav>
 

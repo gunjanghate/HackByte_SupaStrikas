@@ -33,7 +33,7 @@ export default function TrackComplaintPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 font-poppins bg-gradient-to-bl from-green-200 via-white to-green-300">
       
 
       <Card className="w-full max-w-md">
@@ -60,14 +60,14 @@ export default function TrackComplaintPage() {
               </p>
             </div>
 
-            <Button type="submit" className="w-full gap-2">
+            <Button className="bg-green-600 hover:bg-green-700 w-full gap-2" type="submit">
               <Search className="h-4 w-4" />
               Track Complaint
             </Button>
           </form>
         </CardContent>
         <CardFooter className="flex justify-between">
-          <Button className="bg-green-600 hover:bg-green-700" variant="ghost" size="sm" asChild>
+          <Button  variant="ghost" size="sm" asChild>
             <Link href="/" className="gap-2">
               <ArrowLeft className="h-4 w-4" />
               Back to Home

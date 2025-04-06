@@ -29,7 +29,7 @@ export function ComplaintTypeSelector({ selectedType, onSelect }: ComplaintTypeS
           <div
             key={type.id}
             className={`border rounded-md p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-colors ${
-              selectedType === type.id ? "bg-primary/10 border-primary" : "hover:bg-muted/50"
+              selectedType === type.id ? "bg-green-100 border-primary" : "hover:bg-muted/50"
             }`}
             onClick={() => onSelect(type.id)}
           >

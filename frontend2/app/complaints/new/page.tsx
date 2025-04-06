@@ -16,7 +16,8 @@ import { ComplaintTypeSelector } from "@/components/complaint-type-selector"
 import { useComplaintStore } from '../../../lib/stores/complaintStore'
 import axios from "axios"
 import { ethers } from "ethers"
-
+import { AnimatedGridPattern } from "@/components/magicui/animated-grid-pattern"
+import { cn } from "@/lib/utils"
 // ABI for the SecureFIRSystem contract
 const CONTRACT_ABI = [
   "function createFIR(string memory _title, string memory _description, string memory _complainantName, string memory _complainantContact, uint256 _incidentDate, string memory _incidentLocation, string memory _category, bool _includeComplainantAccess, string[] memory _evidenceCids) external",
@@ -204,7 +205,9 @@ export default function NewComplaintPage() {
   
     try {
       // 1. Upload evidence files to IPFS
+      console.log("Uploading files to IPFS:", evidenceFiles);
       const evidenceCids = await uploadFilesToIPFS();
+      console.log("Evidence CIDs:", evidenceCids);
       
       if (evidenceCids.length === 0 && evidenceFiles.length > 0) {
         throw new Error('Failed to upload evidence files');
@@ -256,7 +259,7 @@ export default function NewComplaintPage() {
       console.log('IPFS Hash for full complaint:', ipfsHash);
       
       // 6. Send to insert endpoint (optional backup database)
-      const insertResponse = await axios.post('http://localhost:5000/upload-json', {
+      const insertResponse = await axios.post('https://lavish-cooperation-production.up.railway.app/upload-json', {
         ipfsHash: ipfsHash,
         trackingId
       });
@@ -284,7 +287,8 @@ export default function NewComplaintPage() {
 
   const renderStepIndicator = () => {
     return (
-      <div className="flex items-center justify-between mb-8 px-2">
+      <div className="flex items-center justify-between mb-8 px-2 ">
+
         {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="flex flex-col items-center">
             <div
@@ -292,11 +296,11 @@ export default function NewComplaintPage() {
                 i < step
                   ? "bg-primary text-primary-foreground"
                   : i === step
-                    ? "bg-primary/20 text-primary border-2 border-primary"
+                    ? "bg-green-100 text-primary border-2 border-primary"
                     : "bg-muted text-muted-foreground"
               }`}
             >
-              {i < step ? <CheckCircle className="h-5 w-5" /> : i}
+              {i < step ? <CheckCircle className="h-5 w-5 text-green-300" /> : i}
             </div>
             <span className="text-xs mt-1 hidden sm:block">
               {i === 1 ? "Type" : i === 2 ? "Location" : i === 3 ? "Evidence" : i === 4 ? "Contact" : "Review"}
@@ -308,29 +312,10 @@ export default function NewComplaintPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container flex h-16 items-center px-4 md:px-6">
-          <Link href="/">
-            <ArrowLeft className="h-5 w-5" />
-            <span className="sr-only">Back</span>
-          </Link>
-          <div className="flex items-center gap-2 ml-4">
-            <Shield className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">DeFIR</span>
-          </div>
-          <div className="ml-auto">
-            <Button 
-              onClick={connectWallet} 
-              variant={walletConnected ? "outline" : "default"}
-            >
-              {walletConnected ? "Wallet Connected" : "Connect Wallet"}
-            </Button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gradient-to-bl from-green-200 via-white to-green-200">
+            
 
-      <main className="container px-4 md:px-6 py-8">
+      <main className="container px-4 pt-32 md:px-6 pb-12">
         <div className="max-w-3xl mx-auto">
           <h1 className="text-2xl font-bold mb-2">Register New Complaint</h1>
           <p className="text-muted-foreground mb-6">
@@ -350,11 +335,12 @@ export default function NewComplaintPage() {
                 <ComplaintTypeSelector selectedType={complaintType} onSelect={setComplaintType} />
                 <div className="mt-6 space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="description">Brief Description</Label>
+                    <Label className="" htmlFor="description">Brief Description</Label>
                     <Textarea
                       id="description"
                       placeholder="Please describe the issue in detail"
                       value={description}
+                      className="mt-3"
                       onChange={(e) => setDescription(e.target.value)}
                       rows={4}
                     />
@@ -365,7 +351,7 @@ export default function NewComplaintPage() {
                 <Button variant="outline" asChild>
                   <Link href="/">Cancel</Link>
                 </Button>
-                <Button onClick={handleNext} disabled={!complaintType || !description}>
+                <Button className="bg-green-600 hover:bg-green-700" onClick={handleNext} disabled={!complaintType || !description}>
                   Next
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -395,7 +381,7 @@ export default function NewComplaintPage() {
                 <Button variant="outline" onClick={handleBack}>
                   Back
                 </Button>
-                <Button onClick={handleNext} disabled={!locationAddress}>
+                <Button className="bg-green-600 hover:bg-green-700" onClick={handleNext} disabled={!locationAddress}>
                   Next
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -463,7 +449,7 @@ export default function NewComplaintPage() {
                 <Button variant="outline" onClick={handleBack}>
                   Back
                 </Button>
-                <Button onClick={handleNext}>
+                <Button className="bg-green-600 hover:bg-green-700" onClick={handleNext}>
                   Next
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -509,7 +495,7 @@ export default function NewComplaintPage() {
                 <Button variant="outline" onClick={handleBack}>
                   Back
                 </Button>
-                <Button onClick={handleNext}>
+                <Button className="bg-green-600 hover:bg-green-700" onClick={handleNext}>
                   Next
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -596,7 +582,7 @@ export default function NewComplaintPage() {
                 <Button variant="outline" onClick={handleBack}>
                   Back
                 </Button>
-                <Button 
+                <Button className="bg-green-600 hover:bg-green-700"
                   onClick={handleSubmit}
                   disabled={isSubmitting || loading}
                 >
@@ -623,9 +609,9 @@ export default function NewComplaintPage() {
                   </p>
                   
                   {evidenceCIDs.length > 0 && (
-                    <div className="bg-muted p-4 rounded-md text-left">
+                    <div className="bg-green-100 border-accent-foreground p-4 rounded-md text-left">
                       <h3 className="font-medium mb-2">Evidence IPFS References:</h3>
-                      <div className="space-y-2 text-xs overflow-hidden">
+                      <div className="space-y-2 text-sm overflow-hidden">
                         {evidenceCIDs.map((cid, index) => (
                           <div key={index} className="bg-background p-2 rounded break-all">
                             <span className="font-mono">{cid}</span>

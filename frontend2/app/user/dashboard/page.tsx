@@ -1,25 +1,27 @@
 "use client"
- import { useState } from "react"
- import Link from "next/link"
- import { Shield, Bell, User, LogOut, FileText, Search, Clock, CheckCircle, 
-AlertTriangle, Filter } from "lucide-react"
- import { Button } from "@/components/ui/button"
- import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } 
-from "@/components/ui/card"
- import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
- import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
- import { Badge } from "@/components/ui/badge"
- import { Input } from "@/components/ui/input"
- import {
+import { useState } from "react"
+import Link from "next/link"
+import {
+  Shield, Bell, User, LogOut, FileText, Search, Clock, CheckCircle,
+  AlertTriangle, Filter
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
+  from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
- } from "@/components/ui/dropdown-menu"
- // Mock data for demonstration
- const MOCK_COMPLAINTS = [
+} from "@/components/ui/dropdown-menu"
+// Mock data for demonstration
+const MOCK_COMPLAINTS = [
   {
     id: "ABC12345",
     type: "Noise Complaint",
@@ -52,8 +54,8 @@ from "@/components/ui/card"
     status: "escalated",
     date: "2025-03-10T16:20:00Z",
   },
- ]
- export default function UserDashboardPage() {
+]
+export default function UserDashboardPage() {
   const [activeTab, setActiveTab] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const filteredComplaints = MOCK_COMPLAINTS.filter((complaint) => {
@@ -184,8 +186,8 @@ justify-between mb-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Total 
-Complaints</CardTitle>
+                <CardTitle className="text-sm font-medium">Total
+                  Complaints</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center">
@@ -196,8 +198,8 @@ Complaints</CardTitle>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Active 
-Complaints</CardTitle>
+                <CardTitle className="text-sm font-medium">Active
+                  Complaints</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center">
@@ -210,8 +212,8 @@ Complaints</CardTitle>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Resolved 
-Complaints</CardTitle>
+                <CardTitle className="text-sm font-medium">Resolved
+                  Complaints</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center">
@@ -226,8 +228,8 @@ Complaints</CardTitle>
           <Card>
             <CardHeader>
               <CardTitle>My Complaints</CardTitle>
-              <CardDescription>View and manage all your registered 
-complaints</CardDescription>
+              <CardDescription>View and manage all your registered
+                complaints</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
@@ -273,16 +275,16 @@ transition-colors"
 sm:items-center justify-between gap-4">
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2">
-                                  <h3 
-className="font-semibold">{complaint.type}</h3>
+                                  <h3
+                                    className="font-semibold">{complaint.type}</h3>
                                   {getStatusBadge(complaint.status)}
                                 </div>
                                 <p className="text-sm text-muted-foreground 
 line-clamp-1">{complaint.description}</p>
                               </div>
                               <div className="flex flex-col sm:items-end gap-1">
-                                <div className="text-sm font-medium">ID: 
-{complaint.id}</div>
+                                <div className="text-sm font-medium">ID:
+                                  {complaint.id}</div>
                                 <div className="text-xs text-muted-foreground">
                                   {new Date(complaint.date).toLocaleDateString()}
                                 </div>
@@ -316,16 +318,16 @@ transition-colors"
 sm:items-center justify-between gap-4">
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2">
-                                  <h3 
-className="font-semibold">{complaint.type}</h3>
+                                  <h3
+                                    className="font-semibold">{complaint.type}</h3>
                                   {getStatusBadge(complaint.status)}
                                 </div>
                                 <p className="text-sm text-muted-foreground 
 line-clamp-1">{complaint.description}</p>
                               </div>
                               <div className="flex flex-col sm:items-end gap-1">
-                                <div className="text-sm font-medium">ID: 
-{complaint.id}</div>
+                                <div className="text-sm font-medium">ID:
+                                  {complaint.id}</div>
                                 <div className="text-xs text-muted-foreground">
                                   {new Date(complaint.date).toLocaleDateString()}
                                 </div>
@@ -344,8 +346,8 @@ line-clamp-1">{complaint.description}</p>
                     <div className="text-center py-8">
                       <AlertTriangle className="h-8 w-8 text-muted-foreground 
 mx-auto mb-2" />
-                      <p className="text-muted-foreground">No resolved 
-complaints</p>
+                      <p className="text-muted-foreground">No resolved
+                        complaints</p>
                     </div>
                   ) : (
                     filteredComplaints.map((complaint) => (
@@ -360,16 +362,16 @@ transition-colors"
 sm:items-center justify-between gap-4">
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2">
-                                  <h3 
-className="font-semibold">{complaint.type}</h3>
+                                  <h3
+                                    className="font-semibold">{complaint.type}</h3>
                                   {getStatusBadge(complaint.status)}
                                 </div>
                                 <p className="text-sm text-muted-foreground 
 line-clamp-1">{complaint.description}</p>
                               </div>
                               <div className="flex flex-col sm:items-end gap-1">
-                                <div className="text-sm font-medium">ID: 
-{complaint.id}</div>
+                                <div className="text-sm font-medium">ID:
+                                  {complaint.id}</div>
                                 <div className="text-xs text-muted-foreground">
                                   {new Date(complaint.date).toLocaleDateString()}
                                 </div>
@@ -386,11 +388,11 @@ line-clamp-1">{complaint.description}</p>
             <CardFooter className="flex justify-center">
               <Button variant="outline" size="sm">
                 View All Complaints
-</Button>
- </CardFooter>
- </Card>
- </div>
- </main>
- </div>
- )
- }
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      </main>
+    </div>
+  )
+}

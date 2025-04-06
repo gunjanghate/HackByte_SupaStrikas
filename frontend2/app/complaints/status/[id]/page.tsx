@@ -82,7 +82,7 @@ export default function TaskDetailPage() {
   ): Promise<string | null> => {
     try {
       console.log("Fetching CIDs from backend...");
-      const cidRes = await axios.get("http://localhost:5000/getComplaints");
+      const cidRes = await axios.get("https://lavish-cooperation-production.up.railway.app/getComplaints");
       const { cids } = cidRes.data;
 
       console.log("CIDs fetched:", cids);
@@ -119,7 +119,7 @@ export default function TaskDetailPage() {
   const fetchFIRData = async () => {
     try {
       console.log("Fetching FIR data from backend...");
-      const response = await axios.get("http://localhost:5000/getComplaints");
+      const response = await axios.get("https://lavish-cooperation-production.up.railway.app/getComplaints");
       const cids = response.data.cids;
 
       console.log("FIR CIDs fetched:", cids);
@@ -410,26 +410,13 @@ export default function TaskDetailPage() {
   const currentStatus = getTaskStatus(task);
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container flex h-16 items-center px-4 md:px-6">
-          <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">DeFIR</span>
-          </div>
-          <Button variant="ghost" size="icon" asChild className="ml-4">
-            <Link href="/police/dashboard">
-              <ArrowLeft className="h-5 w-5" />
-              <span className="sr-only">Back</span>
-            </Link>
-          </Button>
-        </div>
-      </header>
+    <div className="min-h-screen min-w-screen font-poppins bg-gradient-to-bl from-green-200 via-white to-green-600">
 
-      <main className="container px-4 md:px-6 py-8">
+
+      <main className="container  px-4 md:px-6 pt-32 py-8 ">
         <div className="grid gap-6 md:grid-cols-3">
-          <div className="md:col-span-2 space-y-6">
-            <Card>
+          <div className="md:col-span-2 space-y-6 md:pl-24 items-center">
+            <Card className="bg-green-50">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -574,7 +561,7 @@ export default function TaskDetailPage() {
               </CardFooter>
             </Card>
 
-            <Card>
+            <Card className="bg-green-50">
               <CardHeader>
                 <CardTitle>Progress Timeline</CardTitle>
               </CardHeader>
@@ -585,36 +572,9 @@ export default function TaskDetailPage() {
           </div>
 
           <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Button
-                  className="w-full flex items-center gap-2"
-                  variant="outline"
-                >
-                  <Phone className="h-4 w-4" />
-                  Contact Complainant
-                </Button>
-                <Button
-                  className="w-full flex items-center gap-2"
-                  variant="outline"
-                >
-                  <MessageSquare className="h-4 w-4" />
-                  Send Update
-                </Button>
-                <Button
-                  className="w-full flex items-center gap-2"
-                  variant="outline"
-                >
-                  <Ambulance className="h-4 w-4" />
-                  Request Support
-                </Button>
-              </CardContent>
-            </Card>
+  
 
-            <Card>
+            <Card className="bg-green-50">
               <CardHeader>
                 <CardTitle>Case Information</CardTitle>
               </CardHeader>
@@ -748,11 +708,8 @@ function LoadingState() {
 
 function ErrorState({ taskId }: { taskId: string }) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
-      <div className="flex items-center gap-2 mb-8">
-        <Shield className="h-8 w-8 text-primary" />
-        <span className="text-2xl font-bold">DeFIR</span>
-      </div>
+    <div className="min-h-[85vh]  flex flex-col items-center justify-center bg-background p-4">
+
       <Card className="w-full max-w-3xl">
         <CardContent className="flex flex-col items-center justify-center py-12">
           <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
@@ -760,8 +717,8 @@ function ErrorState({ taskId }: { taskId: string }) {
           <p className="text-muted-foreground mb-6">
             We couldn't find a task with the ID: {taskId}
           </p>
-          <Button asChild>
-            <Link href="/police/dashboard">Return to Dashboard</Link>
+          <Button className="bg-green-600 hover:bg-green-700" asChild>
+            <Link className="text-lg" href="/police/dashboard">Return to Dashboard</Link>
           </Button>
         </CardContent>
       </Card>

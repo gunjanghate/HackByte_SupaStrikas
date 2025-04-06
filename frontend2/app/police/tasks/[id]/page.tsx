@@ -64,7 +64,7 @@ export default function TaskDetailPage() {
   const getEvidenceImageByTrackingId = async (trackingId: string): Promise<string | null> => {
     try {
       // Step 1: Get array of CIDs from your backend
-      const cidRes = await axios.get("http://localhost:5000/getComplaints");
+      const cidRes = await axios.get("https://lavish-cooperation-production.up.railway.app/getComplaints");
       const { cids } = cidRes.data;
   
       for (const cid of cids) {
@@ -91,7 +91,7 @@ export default function TaskDetailPage() {
   // Function to fetch FIR data
   const fetchFIRData = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/getComplaints")
+      const response = await axios.get("https://lavish-cooperation-production.up.railway.app/getComplaints")
       const cids = response.data.cids
 
       const firDetails = await Promise.all(
@@ -337,13 +337,13 @@ export default function TaskDetailPage() {
   const currentStatus = getTaskStatus(task)
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen min-w-screen font-poppins bg-gradient-to-bl from-green-200 via-white to-green-600">
 
 
-      <main className="container mt-24 px-4 md:px-6 py-8">
+<main className="container  px-4 md:px-6 pt-32 py-8 ">
         <div className="grid gap-6 md:grid-cols-3">
-          <div className="md:col-span-2 space-y-6">
-            <Card>
+          <div className="md:col-span-2 space-y-6 md:pl-24 items-center">
+            <Card className="bg-green-50">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -351,7 +351,7 @@ export default function TaskDetailPage() {
                       {task.description.substring(0, 40)}...
                       <SeverityBadge severity={severity} />
                     </CardTitle>
-                    <CardDescription>Tracking ID: {task.trackingId}</CardDescription>
+                    <CardDescription>Tracking ID: <span className="text-green-600">{task.trackingId}</span> </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
                     <StatusBadge status={currentStatus as keyof typeof STATUS_MAP} />
@@ -359,7 +359,7 @@ export default function TaskDetailPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-4 text-xl">
                   <DetailSection title="Description" content={task.description} />
                   
                   <DetailSection title="Location">
@@ -376,42 +376,46 @@ export default function TaskDetailPage() {
                     </div>
                   </DetailSection>
 
-                  <DetailSection title="Evidence">
+                    <DetailSection title="Evidence">
                     <div className="grid grid-cols-2 gap-4">
                       {task.evidenceFiles && task.evidenceFiles.length > 0 ? (
-                        task.evidenceFiles.map((cid: string) => {
-                          // Use the precalculated evidence URL from state
-                          const evidenceUrl = evidenceUrls[cid];
-                          const isVideo = cid.toLowerCase().endsWith(".mp4");
-                          
-                          return (
-                            <div key={cid} className="relative group">
-                              {!isVideo && (
-                                <img
-                                  src={evidenceUrl}
-                                  alt={`Evidence ${cid.substring(0, 6)}`}
-                                  className="rounded-md object-cover h-40 w-full"
-                                />
-                              )}
-                              {isVideo && (
-                                <video
-                                  controls
-                                  className="rounded-md object-cover h-40 w-full"
-                                >
-                                  <source src={evidenceUrl} type="video/mp4" />
-                                </video>
-                              )}
-                              <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-white text-sm">
-                                {`Evidence File ${cid.substring(0, 6)}`}
-                              </div>
-                            </div>
-                          )
-                        })
+                      task.evidenceFiles.map((cid: string) => {
+                        // Use the precalculated evidence URL from state
+                        const evidenceUrl = evidenceUrls[cid];
+                        const isVideo = cid.toLowerCase().endsWith(".mp4");
+                        
+                        return (
+                        <div key={cid} className="relative group">
+                          {!isVideo && (
+                          <a href={evidenceUrl} target="_blank" rel="noopener noreferrer">
+                            <img
+                            src={evidenceUrl}
+                            alt={`Evidence ${cid.substring(0, 6)}`}
+                            className="rounded-md object-cover h-40 w-full"
+                            />
+                          </a>
+                          )}
+                          {isVideo && (
+                          <a href={evidenceUrl} target="_blank" rel="noopener noreferrer">
+                            <video
+                            controls
+                            className="rounded-md object-cover h-40 w-full"
+                            >
+                            <source src={evidenceUrl} type="video/mp4" />
+                            </video>
+                          </a>
+                          )}
+                          <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-white text-sm">
+                          {`Evidence File ${cid.substring(0, 6)}`}
+                          </div>
+                        </div>
+                        )
+                      })
                       ) : (
-                        <p className="text-sm text-muted-foreground col-span-2">No evidence files submitted</p>
+                      <p className="text-sm text-muted-foreground col-span-2">No evidence files submitted</p>
                       )}
                     </div>
-                  </DetailSection>
+                    </DetailSection>
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col items-start gap-4 pt-0">
@@ -439,7 +443,7 @@ export default function TaskDetailPage() {
                       variant="default" 
                       onClick={handleFileFIR}
                       disabled={isSubmitting}
-                      className="flex items-center gap-2 ml-auto"
+                      className="flex items-center bg-green-600 hover:bg-green-700 gap-2 ml-auto"
                     >
                       <FileText className="h-4 w-4" />
                       {isSubmitting ? "Filing FIR..." : "File FIR"}
@@ -456,7 +460,7 @@ export default function TaskDetailPage() {
                       onChange={(e) => setActivityNote(e.target.value)}
                     />
                     <Button 
-                      className="self-end flex items-center gap-2"
+                      className="self-end flex items-center gap-2 bg-green-600 hover:bg-green-700"
                       onClick={handleSubmitActivityNote}
                       disabled={!activityNote.trim()}
                     >
@@ -468,7 +472,7 @@ export default function TaskDetailPage() {
               </CardFooter>
             </Card>
 
-            <Card>
+            <Card className="bg-green-50">
               <CardHeader>
                 <CardTitle>Progress Timeline</CardTitle>
               </CardHeader>
@@ -479,7 +483,7 @@ export default function TaskDetailPage() {
           </div>
           
           <div className="space-y-6">
-            <Card>
+            {/* <Card>
               <CardHeader>
                 <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
@@ -497,9 +501,9 @@ export default function TaskDetailPage() {
                   Request Support
                 </Button>
               </CardContent>
-            </Card>
+            </Card> */}
             
-            <Card>
+            <Card className="bg-green-50">
               <CardHeader>
                 <CardTitle>Case Information</CardTitle>
               </CardHeader>

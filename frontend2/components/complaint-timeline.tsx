@@ -36,16 +36,32 @@ export function ComplaintTimeline({ timeline }: ComplaintTimelineProps) {
         return "bg-gray-500"
     }
   }
+  
+  // Sort timeline by ID to ensure correct order
+  const sortedTimeline = [...timeline].sort((a, b) => a.id - b.id);
+  
+  // Find the highest completed item index
+  const highestCompletedIndex = sortedTimeline.reduce((highest, item, index) => {
+    return item.completed ? Math.max(highest, index) : highest;
+  }, -1);
+  
+  // Create a new timeline with all previous items marked as completed
+  const processedTimeline = sortedTimeline.map((item, index) => {
+    if (index <= highestCompletedIndex) {
+      return { ...item, completed: true };
+    }
+    return item;
+  });
 
   return (
     <div className="space-y-4">
       <div className="relative">
         {/* Vertical line */}
         <div className="absolute left-3.5 top-3 bottom-3 w-0.5 bg-muted"></div>
-
+        
         {/* Timeline items */}
         <div className="space-y-6">
-          {timeline.map((item, index) => (
+          {processedTimeline.map((item, index) => (
             <div key={item.id} className="flex gap-4">
               <div className="relative flex items-center justify-center flex-shrink-0 mt-1">
                 <div
@@ -75,4 +91,3 @@ export function ComplaintTimeline({ timeline }: ComplaintTimelineProps) {
     </div>
   )
 }
-

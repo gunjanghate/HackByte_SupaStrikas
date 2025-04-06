@@ -18,7 +18,7 @@ export default function Home() {
     fetchComplaints()
   }, [fetchComplaints])
   return (
-    <div className="min-h-screen min-w-screen font-poppins bg-white">
+    <div className="min-h-screen min-w-screen font-poppins bg-gradient-to-bl from-green-200 via-white to-green-600">
         <AnimatedGridPattern
           numSquares={20}
           maxOpacity={0.5}
@@ -37,7 +37,7 @@ export default function Home() {
               duration={500}
             >
         {/* <Navbar /> */}
-        <main>
+        <main className="pb-20">
           <Hero />
           <Services />
           <ContactSection />

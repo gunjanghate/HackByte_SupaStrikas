@@ -15,21 +15,21 @@ export function Services() {
       title: "App-Based Reporting",
       icon: Smartphone,
       description: "Submit complaints directly through our user-friendly mobile app.",
-      bgColor: "bg-[#B9FF66]",
+      bgColor: "bg-green-300/60",
       textColor: "text-[#191A23]",
     },
     {
       title: "AI-Powered Analysis",
       icon: Cpu,
       description: "Advanced AI analyzes complaints to prioritize and categorize for efficient handling.",
-      bgColor: "bg-[#191A23]",
-      textColor: "text-white",
+      bgColor: "bg-[#F3F3F3]",
+      textColor: "text-black",
     },
     {
       title: "Real-Time Deployment",
       icon: MapPin,
       description: "Swift deployment of police resources based on complaint severity and location.",
-      bgColor: "bg-[#B9FF66]",
+      bgColor: "bg-green-300/60",
       textColor: "text-[#191A23]",
     },
     {
@@ -43,7 +43,7 @@ export function Services() {
       title: "Task Management",
       icon: CheckSquare,
       description: "Efficient tools for police to monitor, manage, and resolve tasks and FIRs.",
-      bgColor: "bg-[#191A23]",
+      bgColor: "bg-green-300/60",
       textColor: "text-white",
     },
   ];
@@ -52,7 +52,7 @@ export function Services() {
     <section className="py-16 mt-12 md:py-24">
       <div className="container mx-auto px-4 md:px-6">
         <div className="mb-12">
-          <div className="inline-block px-4 py-2 bg-[#B9FF66] rounded-full mb-4">
+          <div className="inline-block px-4 py-2  rounded-full mb-4">
             <h2 className="text-[#191A23] font-bold">Features</h2>
           </div>
           <p className="text-[#191A23]/80 max-w-2xl">
@@ -62,7 +62,7 @@ export function Services() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {services.map((service, index) => (
-            <Card key={index} className={`border-none ${service.bgColor} overflow-hidden`}>
+            <Card key={index} className={`border-none  ${service.bgColor} overflow-hidden`}>
               <CardContent className="p-6">
                 <div className="flex flex-col h-full">
                   <div className="mb-4">

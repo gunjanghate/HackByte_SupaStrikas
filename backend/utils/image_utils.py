@@ -2,7 +2,10 @@ import base64
 import io
 from PIL import Image
 import re
-import magic
+import ctypes
+import os
+
+
 from config import Config
 
 def save_base64_image(base64_data, output_path):
@@ -20,40 +23,53 @@ def save_base64_image(base64_data, output_path):
     with open(output_path, 'wb') as f:
         f.write(image_data)
 
-def validate_image(base64_data):
-    """
-    Validate that the base64 data is a valid image
+# def validate_image(base64_data):
+#     """
+#     Validate that the base64 data is a valid image
     
-    Args:
-        base64_data (str): Base64 encoded image data
+#     Args:
+#         base64_data (str): Base64 encoded image data
         
-    Returns:
-        bool: True if valid, False otherwise
-    """
+#     Returns:
+#         bool: True if valid, False otherwise
+#     """
+#     try:
+#         # Decode the base64 data
+#         image_data = base64.b64decode(base64_data)
+        
+#         # Check file size
+#         file_size_mb = len(image_data) / (1024 * 1024)
+#         if file_size_mb > Config.MAX_IMAGE_SIZE_MB:
+#             return False
+        
+#         # Check the file type
+#         mime = magic.Magic(mime=True)
+#         file_type = mime.from_buffer(image_data)
+        
+#         # Check if it's an allowed image format
+#         if not any(fmt in file_type for fmt in ["jpeg", "jpg", "png"]):
+#             return False
+        
+#         # Try to open it with PIL to verify it's a valid image
+#         Image.open(io.BytesIO(image_data))
+        
+#         return True
+#     except Exception:
+#         return False
+def validate_image(base64_str):
     try:
-        # Decode the base64 data
-        image_data = base64.b64decode(base64_data)
-        
-        # Check file size
-        file_size_mb = len(image_data) / (1024 * 1024)
-        if file_size_mb > Config.MAX_IMAGE_SIZE_MB:
-            return False
-        
-        # Check the file type
-        mime = magic.Magic(mime=True)
-        file_type = mime.from_buffer(image_data)
-        
-        # Check if it's an allowed image format
-        if not any(fmt in file_type for fmt in ["jpeg", "jpg", "png"]):
-            return False
-        
-        # Try to open it with PIL to verify it's a valid image
-        Image.open(io.BytesIO(image_data))
-        
+        # Remove metadata if present (e.g., "data:image/jpeg;base64,...")
+        if "," in base64_str:
+            base64_str = base64_str.split(",")[1]
+
+        image_data = base64.b64decode(base64_str)
+        img = Image.open(io.BytesIO(image_data))
+        img.verify()  # Validate image file
+
         return True
     except Exception:
         return False
-
+    
 def extract_exif_data(image_path):
     """
     Extract EXIF data from an image
