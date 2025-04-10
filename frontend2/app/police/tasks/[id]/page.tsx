@@ -29,7 +29,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { ComplaintTimeline } from "@/components/complaint-timeline"
 import { useComplaintStore } from "@/lib/stores/complaintStore"
 import { Complaint } from "@/lib/stores/complaintStore"
-import SecureFIRSystem from "../../../../../artifacts/contracts/SecureFIRSystem.sol/SecureFIRSystem.json"
+import SecureFIRSystem from "@/abis/Contract1.json"
 import { ethers } from "ethers"
 
 const STATUS_MAP = {
