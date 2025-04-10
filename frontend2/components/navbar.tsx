@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { useState, useEffect, JSX } from "react"
 import { Menu, Shield, X } from "lucide-react"
 import { ethers, N } from "ethers"
-import PoliceWalletManager from "../../artifacts/contracts/PoliceWalletManager.sol/PoliceWalletManager.json"
 import Image from "next/image"
 import logo from "../public/logo.png"
 declare global {
@@ -14,105 +13,15 @@ declare global {
   }
 }
 
-const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "";
-
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [currentAccount, setCurrentAccount] = useState("")
   const [userRole, setUserRole] = useState<"owner" | "police" | "citizen" | null>(null)
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    const initialize = async () => {
-      if (typeof window.ethereum !== "undefined" && CONTRACT_ADDRESS) {
-        try {
-          const accounts = await window.ethereum.request({ method: "eth_accounts" })
-          if (accounts.length > 0) {
-            await checkUserRole(accounts[0])
-            console.log("User role:", userRole)
-          }
-        } catch (error) {
-          console.error("Initial connection error:", error)
-        }
-      }
-    }
-    initialize()
-  }, [])
 
-  const checkUserRole = async (address: string) => {
-    if (!CONTRACT_ADDRESS) {
-      console.error("Contract address not configured")
-      return
-    }
 
-    try {
-      setLoading(true)
-      const provider = new ethers.BrowserProvider(window.ethereum)
-      const contract = new ethers.Contract(
-        CONTRACT_ADDRESS,
-        PoliceWalletManager.abi,
-        provider
-      )
 
-      // Verify contract connection
-      const owner = await contract.owner()
-      if (!ethers.isAddress(owner)) {
-        throw new Error("Invalid owner address returned from contract")
-      }
-
-      const isPolice = await contract.isPolice(address)
-
-      setCurrentAccount(address)
-      setUserRole(address.toLowerCase() === owner.toLowerCase() ? "owner" : isPolice ? "police" : "citizen")
-
-    } catch (error) {
-      console.error("Role check failed:", error)
-      alert("Error connecting to contract. Please check network and try again.")
-      setUserRole(null)
-      setCurrentAccount("")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleLogin = async () => {
-    if (typeof window.ethereum === "undefined") {
-      alert("Please install MetaMask!")
-      return
-    }
-
-    if (!CONTRACT_ADDRESS) {
-      alert("Contract not configured")
-      return
-    }
-
-    try {
-      setLoading(true)
-      const accounts = await window.ethereum.request({
-        method: "eth_requestAccounts",
-      })
-
-      await checkUserRole(accounts[0])
-      redirectToDashboard()
-    } catch (error) {
-      console.error("Connection error:", error)
-      alert("Wallet connection failed. Please try again.")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const redirectToDashboard = () => {
-    if (!userRole) return
-
-    const routes = {
-      owner: "/owner/dashboard",
-      police: "/police/dashboard",
-      citizen: "/user/dashboard"
-    }
-
-    window.location.href = routes[userRole]
-  }
 
   return (
     <header className=" border-2 border-green-900 mx-24 rounded-2xl backdrop-blur-3xl bg-transparent fixed top-3 md:top-5 left-0 right-0  z-50 shadow-xl">
