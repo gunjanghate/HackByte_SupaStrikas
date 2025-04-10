@@ -63,11 +63,12 @@ def analyze_aadhar_with_gemini(image_path, ocr_data):
         4. Security features: Look for expected security features like QR code, ghost image, etc.
         
         Format your response as a JSON object with these fields:
-        - is_authentic (boolean): Whether the document appears authentic
-        - confidence (number 0-100): Confidence level in the assessment
+        - is_authentic (boolean): Whether the document appears authentic 
         - findings (array): List of observations with 'type' ('positive'/'negative'/'neutral') and 'description'
         - security_issues (array): List of security concerns with 'title' and 'description'
         - ocr_match_results (object): For each OCR field, indicate if it matches what's visible (true/false)
+        -confidence (number 0-100): Using all the above, how confident are you that this is a valid Aadhar card?
+        - Note: The confidence score should be a number between 0 and 100.
         
         Return only the JSON object, nothing else.
         """
