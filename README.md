@@ -3,7 +3,7 @@
 
 > 💬 “Speak up. Stay safe.” – A secure and decentralized platform to report corruption anonymously and immutably.
 
-WhistleChain empowers citizens to report corruption without fear, leveraging **blockchain**, **IPFS**, and **encryption** to ensure anonymity, data integrity, and transparency.
+DeFIR empowers citizens to report corruption without fear, leveraging **blockchain**, **IPFS**, and **encryption** to ensure anonymity, data integrity, and transparency.
 
 ---
 
